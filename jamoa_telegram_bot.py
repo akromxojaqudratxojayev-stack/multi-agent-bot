@@ -93,7 +93,7 @@ TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "excel_fayl_yaratish",
-            "description": "Professional Excel (.xlsx) jadval faylini yaratish",
+            "description": "Faqat foydalanuvchi hisob-kitob, smeta, narxlar yoki jadval so'raganda chaqiriladi. Professional Excel (.xlsx) jadval faylini yaratish.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -123,13 +123,13 @@ TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "video_rolik_yaratish",
-            "description": "Haqiqiy .mp4 formatdagi video rolik yaratish (Replicate AI yoki avtonom HD video dvigateli yordamida).",
+            "description": "Faqat foydalanuvchi video, rolik, klip yoki animatsiya so'raganda chaqiriladi. Haqiqiy .mp4 video rolik yaratish.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "video_nomi": {
                         "type": "string",
-                        "description": "Video fayl nomi (masalan: labo_reklama.mp4 yoki hikoya_rolik.mp4)"
+                        "description": "Video fayl nomi (masalan: reklama_rolik.mp4)"
                     },
                     "mavzu": {
                         "type": "string",
@@ -140,13 +140,13 @@ TOOLS_SCHEMA = [
                         "items": {
                             "type": "object",
                             "properties": {
-                                "sarlavha": {"type": "string", "description": "Kadr sarlavhasi (masalan: 1-Kadr: Bosh qahramon kirishi)"},
+                                "sarlavha": {"type": "string", "description": "Kadr sarlavhasi (masalan: 1-Kadr: Kirish)"},
                                 "matn": {"type": "string", "description": "Kadr davomidagi ovozli diktor nutqi yoki subtitr matni"},
-                                "vizual": {"type": "string", "description": "Kadrda nimalar aks etishi (kamera harakati, mashina, qahramon)"}
+                                "vizual": {"type": "string", "description": "Kadrda nimalar aks etishi"}
                             },
                             "required": ["sarlavha", "matn"]
                         },
-                        "description": "Videodagi kadrma-kadr sahnalar ro'yxati (har bir kadr 4 soniya)"
+                        "description": "Videodagi kadrma-kadr sahnalar ro'yxati"
                     }
                 },
                 "required": ["video_nomi", "mavzu", "kadrlar"]
@@ -159,12 +159,17 @@ SYSTEM_PROMPT = (
     "Sen Sardor — Professional Bosh Direktorsan (AI Executive Director). Sening qo'ling ostida 3 ta ishonchli mutaxassis xodim ishlaydi:\n"
     "1. Javohir — Bosh Iqtisodchi & Moliya tahlilchisi (Bozor narxlari, smeta va Excel .xlsx jadvallari ustasi).\n"
     "2. Madina — Bosh Kreativ Dizayner (Brending, matnlar, reklama va rasm promptlari ustasi).\n"
-    "3. Temur — Bosh Video Rejissyor & IT (Video ssilkalarni tahlil qilish, kadrma-kadr video-hikoyalar va ALBATTA 'video_rolik_yaratish' orqali HAQIQIY .mp4 video roliklar yaratish ustasi).\n\n"
-    "QAT'IY QOIDALAR:\n"
-    "1. FAQAT TEGISHLI XODIM JAVOB BERSIN: Agar mavzu video yoki rasm haqida bo'lsa, Javohir (Moliya) aralashmasin va 'men hech narsa qilmadim' deb yozma! Faqat topshiriqqa javobgar mutaxassis (Temur yoki Madina) to'liq natijani taqdim etsin!\n"
-    "2. VIDEO, SSILKA VA RASMLAR BERILGANDA: Temur darhol videoni yoki mavzuni tahlil qilsin, foydalanuvchi bergan rasm yoki talablarni inobatga olsin va ALBATTA 'video_rolik_yaratish' asbobini chaqirib HAQIQIY .mp4 video fayl yaratsin! Hech qachon faqat matn yozib to'xtab qolma, har doim video_rolik_yaratish orqali haqiqiy rolikni taqdim et!\n"
-    "3. EXCEL VA JADVALLAR: Agar hisobot, narxlar ro'yxati yoki jadval so'ralsa, Javohir ALBATTA 'excel_fayl_yaratish' funksiyasini chaqirib haqiqiy .xlsx fayl yaratsin!\n"
-    "4. Hech qachon sayoz, 1 qatorli yoki 'hech nima qilmadi' degan javob berma! Har bir topshiriqqa to'liq, professional va mukammal yondash."
+    "3. Temur — Bosh Video Rejissyor & IT (Video ssilkalarni tahlil qilish, kadrma-kadr video-hikoyalar va .mp4 video roliklar yaratish ustasi).\n\n"
+    "ENG ASOSIY QONUN: FAQAT FOYDALANUVCHI SO'RAGAN NARSANI QIL!\n"
+    "1. AGAR FOYDALANUVCHI EXCEL, JADVAL, NARXLAR, SMETA YOKI HISOBOT SO'RASA:\n"
+    "   - FAQAT Javohir javob beradi va FAQAT 'excel_fayl_yaratish' funksiyasini chaqirib Excel (.xlsx) fayl yaratadi.\n"
+    "   - Video UMUMAN qilinmaydi! Hech qanday video funksiyasini chaqirma!\n"
+    "2. AGAR FOYDALANUVCHI VIDEO, ROLIK, KLIP YOKI VIDEO SSILKA ASOSIDA ROLIK SO'RASA:\n"
+    "   - FAQAT Temur javob beradi va FAQAT 'video_rolik_yaratish' funksiyasini chaqirib .mp4 video fayl yaratadi.\n"
+    "   - Excel UMUMAN qilinmaydi! Hech qanday excel funksiyasini chaqirma!\n"
+    "3. AGAR FOYDALANUVCHI MATN, REKLAMA POSTI, MASLAHAT YOKI TUSHUNTIRISH SO'RASA:\n"
+    "   - Hech qanday fayl yaratma! Faqat aniq, tushunarli va chiroyli matn bilan javob ber.\n"
+    "4. BIR VAQTDA HAM EXCEL, HAM VIDEO BERISH QAT'IYAN TAQIQLANADI! Har bir so'rovga faqat 1 ta tegishli natija berilsin."
 )
 
 def ask_openrouter(messages, tools=None):
@@ -197,27 +202,21 @@ def ask_openrouter(messages, tools=None):
     return res.json()
 
 def process_agent_request(user_text, target_agent='director', uploaded_images=None):
-    """Foydalanuvchi topshirig'ini bajarib, matn, Excel fayli va Video faylini qaytaradi"""
+    """Foydalanuvchi topshirig'ini bajarib, faqat so'ralgan natijani qaytaradi"""
     if target_agent == 'finance':
         system_instruction = (
-            "Sen Javohir — Bosh Iqtisodchi & Moliya tahlilchisisan. Rahbar to'g'ridan-to'g'ri sening xonangga kirib topshiriq berdi. "
-            "Sening ishingni Bosh Direktor Sardor sinchiklab kuzatib turibdi.\n"
-            "Vazifang: Aniq bozor narxlari, tahlil, smeta va ALBATTA 'excel_fayl_yaratish' funksiyasini chaqirib haqiqiy .xlsx Excel jadval yaratish! "
-            "Javobingni donama-dona tartibda va chiroyli emojilar bilan ber."
+            "Sen Javohir — Bosh Iqtisodchi & Moliya tahlilchisisan. Foydalanuvchi narxlar, hisob-kitob yoki Excel jadval so'radi. "
+            "Sening vazifang: 'excel_fayl_yaratish' funksiyasini chaqirib haqiqiy .xlsx Excel jadval yaratish! Hech qanday video qilma!"
         )
     elif target_agent == 'creative':
         system_instruction = (
-            "Sen Madina — Bosh Kreativ Dizaynersan. Rahbar to'g'ridan-to'g'ri sening xonangga kirib topshiriq berdi. "
-            "Sening ishingni Bosh Direktor Sardor kuzatib turibdi.\n"
-            "Vazifang: Kuchli reklama matnlari, brending konsepsiyalari va Midjourney/Flux uchun fotorealistik vizual promptlarni donama-dona qilib berish."
+            "Sen Madina — Bosh Kreativ Dizaynersan. Foydalanuvchi reklama matni yoki kreativ g'oya so'radi. "
+            "Sening vazifang: Kuchli reklama matnlari va tavsiyalar berish. Hech qanday fayl yaratma."
         )
     elif target_agent == 'video':
         system_instruction = (
-            "Sen Temur — Bosh Video Rejissyor & IT mutaxassisisan. Rahbar to'g'ridan-to'g'ri sening xonangga kirib topshiriq berdi. "
-            "Sening ishingni Bosh Direktor Sardor kuzatib turibdi.\n"
-            "Vazifang: Video ssilkalarni tahlil qilish, kadrlar ssenariysini tuzish va "
-            "ALBATTA 'video_rolik_yaratish' funksiyasini chaqirib HAQIQIY .mp4 video rolikni yaratish! "
-            "Foydalanuvchi yuklagan rasmlarni (qahramon, mahsulot, mashina) videoga kiritib, unga yuklab olish uchun tayyor video berishing shart!"
+            "Sen Temur — Bosh Video Rejissyor & IT mutaxassisisan. Foydalanuvchi video rolik yoki animatsiya so'radi. "
+            "Sening vazifang: 'video_rolik_yaratish' funksiyasini chaqirib haqiqiy .mp4 video rolik yaratish! Hech qanday Excel qilma!"
         )
     else:
         system_instruction = SYSTEM_PROMPT
@@ -227,10 +226,7 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
         {"role": "user", "content": user_text}
     ]
     
-    old_xlsx = set(glob.glob(os.path.join(BASE_DIR, "*.xlsx")))
-    old_mp4 = set(glob.glob(os.path.join(BASE_DIR, "*.mp4")))
-    
-    # 1. So'rov yuborish
+    # So'rov yuborish
     resp = ask_openrouter(messages, tools=TOOLS_SCHEMA)
     choice = resp['choices'][0]
     message_obj = choice['message']
@@ -239,7 +235,6 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
     created_excel = None
     created_video = None
     
-    # 2. Agar model vositani chaqirgan bo'lsa
     if tool_calls:
         tool_responses = []
         for tc in tool_calls:
@@ -250,23 +245,26 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
             except Exception:
                 args = {}
                 
-            if t_name == 'excel_fayl_yaratish':
+            # FAQAT BITTA ASOSIY ASBOB ISHLATILADI:
+            if t_name == 'excel_fayl_yaratish' and not created_video:
                 try:
                     f_res = excel_fayl_yaratish(
                         args.get('fayl_nomi', 'hisobot.xlsx'),
                         args.get('ustunlar', []),
                         args.get('qatorlar', [])
                     )
-                    content_str = f"Excel fayli '{f_res}' muvaffaqiyatli yaratildi."
+                    created_excel = f_res
+                    created_video = None  # Video bo'lmasligi shart!
+                    content_str = f"Excel fayli '{f_res}' yaratildi."
                 except Exception as e:
-                    content_str = f"Excel yaratishda xato: {e}"
+                    content_str = f"Excel xatosi: {e}"
                 tool_responses.append({
                     "role": "tool",
                     "tool_call_id": t_id,
                     "name": t_name,
                     "content": content_str
                 })
-            elif t_name == 'video_rolik_yaratish':
+            elif t_name == 'video_rolik_yaratish' and not created_excel:
                 try:
                     v_res = render_dynamic_video(
                         args.get('video_nomi', 'rolik.mp4'),
@@ -274,9 +272,11 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
                         args.get('kadrlar', []),
                         uploaded_images=uploaded_images
                     )
-                    content_str = f"Haqiqiy MP4 video rolik '{v_res}' muvaffaqiyatli yaratildi va saqlandi."
+                    created_video = v_res
+                    created_excel = None  # Excel bo'lmasligi shart!
+                    content_str = f"Video fayli '{v_res}' yaratildi."
                 except Exception as e:
-                    content_str = f"Video yaratishda xato: {e}"
+                    content_str = f"Video xatosi: {e}"
                 tool_responses.append({
                     "role": "tool",
                     "tool_call_id": t_id,
@@ -284,39 +284,34 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
                     "content": content_str
                 })
                 
-        # Modelga natijalarni bildirib, yakuniy xulosani olamiz
-        messages.append(message_obj)
-        messages.extend(tool_responses)
-        final_resp = ask_openrouter(messages)
-        final_text = final_resp['choices'][0]['message'].get('content', '')
+        if tool_responses:
+            messages.append(message_obj)
+            messages.extend(tool_responses)
+            final_resp = ask_openrouter(messages)
+            final_text = final_resp['choices'][0]['message'].get('content', '')
+        else:
+            final_text = message_obj.get('content', '')
     else:
         final_text = message_obj.get('content', '')
-        
-        # Maxsus avtomatik kafolat: Agar video so'ralgan bo'lsa yoki Temur xonasida bo'lsa,
-        # lekin model tool chaqirishni unutgan bo'lsa, avtomatik tarzda video_rolik_yaratish ishga tushadi!
-        low_t = user_text.lower()
-        if target_agent == 'video' or 'video' in low_t or 'rolik' in low_t or 'ssilka' in low_t or 'silka' in low_t or uploaded_images:
-            try:
-                auto_video_name = f"video_{len(old_mp4)+1}.mp4"
-                print(f"[Avtomatik Video]: Video talab etilganligi uchun '{auto_video_name}' yaratilmoqda...")
-                auto_kadrlar = [
-                    {"sarlavha": "1-Kadr: Kirish & Tavsif", "matn": user_text[:100] if user_text else "Yangi video loyiha"},
-                    {"sarlavha": "2-Kadr: Asosiy Tafsilot", "matn": "Qahramon va mahsulot namoyishi, to'liq ma'lumotlar"},
-                    {"sarlavha": "3-Kadr: Yakuniy Xulosa", "matn": "Muvaffaqiyatli yakun va hamkorlik uchun murojaat"}
-                ]
-                render_dynamic_video(auto_video_name, user_text or "Video Rolik", auto_kadrlar, uploaded_images=uploaded_images)
-            except Exception as e:
-                print("Avtomatik video yaratishda xato:", e)
 
-    # Yangi paydo bo'lgan fayllarni aniqlaymiz
-    new_xlsx = set(glob.glob(os.path.join(BASE_DIR, "*.xlsx"))) - old_xlsx
-    if new_xlsx:
-        created_excel = os.path.basename(list(new_xlsx)[0])
-        
-    new_mp4 = set(glob.glob(os.path.join(BASE_DIR, "*.mp4"))) - old_mp4
-    if new_mp4:
-        created_video = os.path.basename(list(new_mp4)[0])
-        
+    # Qo'shimcha nazorat: agar foydalanuvchi aniq so'ragan bo'lsa-yu, ikkalasi aralashsa
+    if created_excel and created_video:
+        low_t = user_text.lower()
+        if any(w in low_t for w in ['video', 'rolik', 'klip', 'ssilka', 'silka']):
+            created_excel = None
+        else:
+            created_video = None
+
+    if created_excel:
+        ep = os.path.join(BASE_DIR, created_excel)
+        if not os.path.exists(ep) or os.path.getsize(ep) < 500:
+            created_excel = None
+
+    if created_video:
+        vp = os.path.join(BASE_DIR, created_video)
+        if not os.path.exists(vp) or os.path.getsize(vp) < 1000:
+            created_video = None
+
     return final_text, created_excel, created_video
 
 # =======================================================
@@ -330,7 +325,6 @@ def dashboard():
 def api_task():
     uploaded_images = []
     
-    # 1. Multipart/form-data orqali kelgan so'rov (fayllar bilan birga)
     if request.files:
         task_text = request.form.get('task', '').strip()
         target_agent = request.form.get('target_agent', 'director')
@@ -342,7 +336,6 @@ def api_task():
                 file.save(save_path)
                 uploaded_images.append(save_path)
     else:
-        # 2. JSON orqali kelgan so'rov
         data = request.json or {}
         task_text = data.get('task', '').strip()
         target_agent = data.get('target_agent', 'director')
@@ -369,7 +362,7 @@ def api_task():
 def api_voice():
     try:
         report, excel_file, video_file = process_agent_request(
-            "Ovozli buyruq: Iltimos, so'nggi xarajatlar va bozor narxlari bo'yicha to'liq hisobot tayyorlab ber."
+            "Ovozli topshiriq bo'yicha to'liq hisobot tayyorlab ber."
         )
         return jsonify({
             'status': 'success',
@@ -382,8 +375,8 @@ def api_voice():
 
 @app.route('/api/files', methods=['GET'])
 def api_files():
-    xlsx_files = [os.path.basename(f) for f in glob.glob(os.path.join(BASE_DIR, "*.xlsx"))]
-    mp4_files = [os.path.basename(f) for f in glob.glob(os.path.join(BASE_DIR, "*.mp4"))]
+    xlsx_files = [os.path.basename(f) for f in glob.glob(os.path.join(BASE_DIR, "*.xlsx")) if os.path.getsize(f) > 500]
+    mp4_files = [os.path.basename(f) for f in glob.glob(os.path.join(BASE_DIR, "*.mp4")) if os.path.getsize(f) > 1000]
     return jsonify({
         'xlsx_files': xlsx_files,
         'mp4_files': mp4_files,
@@ -432,11 +425,11 @@ def run_telegram_bot():
             message,
             f"Salom hurmatli rahbar! Men sizning Bosh Direktoringiz Sardorman.\n\n"
             f"🆔 Sizning Telegram ID: `{message.chat.id}`\n\n"
-            f"💼 Jamoamiz imkoniyatlari:\n"
-            f"• 📊 Javohir: Bozor narxlari va professional Excel (.xlsx) hisobotlari\n"
-            f"• 🎨 Madina: Reklama matnlari va fotorealistik Midjourney promptlar\n"
-            f"• 🎬 Temur: Video ssilka va rasmlar asosida haqiqiy MP4 video roliklar yaratish!\n\n"
-            f"Menga xohlagan topshiriqni bering, yoki rasm/ssilka yuboring!",
+            f"💼 Jamoamiz siz qanday topshiriq bersangiz, aynan o'sha formatda bajaradi:\n"
+            f"• 📊 Jadval, narx yoki hisobot so'rasangiz -> FAQAT Excel (.xlsx) jadvali\n"
+            f"• 🎬 Video, rolik yoki klip so'rasangiz -> FAQAT Video (.mp4) roligi\n"
+            f"• ✍️ Maslahat yoki matn so'rasangiz -> FAQAT professional matn\n\n"
+            f"Topshirig'ingizni bering yoki rasm yuboring!",
             parse_mode='Markdown'
         )
 
@@ -449,17 +442,17 @@ def run_telegram_bot():
             report, excel_file, video_file = process_agent_request(message.text)
             bot.send_message(message.chat.id, report)
             
+            # FAQAT SO'RALGAN FAYL YUBORILADI (Ikkisi birga yuborilmaydi)
             if excel_file:
                 fpath = os.path.join(BASE_DIR, excel_file)
-                if os.path.exists(fpath):
+                if os.path.exists(fpath) and os.path.getsize(fpath) > 500:
                     with open(fpath, "rb") as doc:
                         bot.send_document(message.chat.id, doc, caption="📊 Siz so'ragan tayyor Excel hisoboti")
-                        
-            if video_file:
+            elif video_file:
                 vpath = os.path.join(BASE_DIR, video_file)
-                if os.path.exists(vpath):
+                if os.path.exists(vpath) and os.path.getsize(vpath) > 1000:
                     with open(vpath, "rb") as vid:
-                        bot.send_video(message.chat.id, vid, caption="🎬 Temur: Siz so'ragan tayyor video rolik (.mp4)")
+                        bot.send_video(message.chat.id, vid, caption="🎬 Siz so'ragan tayyor video rolik (.mp4)")
         except Exception as e:
             bot.reply_to(message, f"Xatolik yuz berdi: {e}")
 
@@ -467,9 +460,8 @@ def run_telegram_bot():
     def handle_photo(message):
         if not check_access(message):
             return
-        bot.send_chat_action(message.chat.id, 'upload_video')
+        bot.send_chat_action(message.chat.id, 'typing')
         try:
-            # Eng yuqori sifatli fotosuratni yuklab olamiz
             file_info = bot.get_file(message.photo[-1].file_id)
             downloaded = bot.download_file(file_info.file_path)
             
@@ -478,21 +470,38 @@ def run_telegram_bot():
             with open(photo_path, 'wb') as new_f:
                 new_f.write(downloaded)
                 
-            caption = message.caption or "Ushbu rasm asosida qiziqarli video rolik ssenariysi va tayyor MP4 video yaratib ber."
-            prompt_with_photo = f"{caption} (Foydalanuvchi qahramon/mahsulot rasmini yubordi: {photo_name})"
+            caption = message.caption or ""
+            low_c = caption.lower()
             
+            # Foydalanuvchi nima so'raganini uning yozuvidan aniqlaymiz:
+            if any(w in low_c for w in ['video', 'rolik', 'klip', 'ssilka', 'silka', 'harakatlantir']):
+                target_agent = 'video'
+                prompt_text = caption or "Ushbu rasm asosida video rolik yaratib ber."
+            elif any(w in low_c for w in ['excel', 'jadval', 'narx', 'narxlari', 'smeta', 'hisob', 'hisobot']):
+                target_agent = 'finance'
+                prompt_text = caption or "Ushbu rasm bo'yicha narxlar va hisob-kitob qilib Excel jadval tayyorla."
+            else:
+                target_agent = 'director'
+                prompt_text = caption or "Ushbu rasmni tahlil qilib to'liq ma'lumot bering."
+
             report, excel_file, video_file = process_agent_request(
-                prompt_with_photo,
-                target_agent='video',
+                prompt_text,
+                target_agent=target_agent,
                 uploaded_images=[photo_path]
             )
             bot.send_message(message.chat.id, report)
             
-            if video_file:
+            # FAQAT SO'RALGAN FAYL YUBORILADI:
+            if excel_file:
+                fpath = os.path.join(BASE_DIR, excel_file)
+                if os.path.exists(fpath) and os.path.getsize(fpath) > 500:
+                    with open(fpath, "rb") as doc:
+                        bot.send_document(message.chat.id, doc, caption="📊 Siz so'ragan tayyor Excel hisoboti")
+            elif video_file:
                 vpath = os.path.join(BASE_DIR, video_file)
-                if os.path.exists(vpath):
+                if os.path.exists(vpath) and os.path.getsize(vpath) > 1000:
                     with open(vpath, "rb") as vid:
-                        bot.send_video(message.chat.id, vid, caption="🎬 Temur: Rasm asosida tayyorlangan video rolik!")
+                        bot.send_video(message.chat.id, vid, caption="🎬 Rasm asosida tayyorlangan video rolik (.mp4)")
         except Exception as e:
             bot.reply_to(message, f"Rasm tahlilida xatolik: {e}")
 
@@ -504,17 +513,17 @@ def run_telegram_bot():
         try:
             bot.reply_to(message, "Ovozli xabar qabul qilindi. Topshiriq bajarilmoqda...")
             report, excel_file, video_file = process_agent_request(
-                "Ovozli topshiriq: Iltimos, batafsil hisobot tayyorlab ber va kerak bo'lsa Excel jadval yoki video yarat."
+                "Ovozli topshiriq: Iltimos, topshiriq bo'yicha to'liq hisobot bering."
             )
             bot.send_message(message.chat.id, report)
             if excel_file:
                 fpath = os.path.join(BASE_DIR, excel_file)
-                if os.path.exists(fpath):
+                if os.path.exists(fpath) and os.path.getsize(fpath) > 500:
                     with open(fpath, "rb") as doc:
                         bot.send_document(message.chat.id, doc, caption="📊 Siz so'ragan tayyor Excel hisoboti")
-            if video_file:
+            elif video_file:
                 vpath = os.path.join(BASE_DIR, video_file)
-                if os.path.exists(vpath):
+                if os.path.exists(vpath) and os.path.getsize(vpath) > 1000:
                     with open(vpath, "rb") as vid:
                         bot.send_video(message.chat.id, vid, caption="🎬 Siz so'ragan tayyor video rolik (.mp4)")
         except Exception as e:
