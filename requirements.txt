@@ -2,3 +2,8 @@ pyTelegramBotAPI
 flask
 openpyxl
 requests
+pillow
+imageio
+imageio-ffmpeg
+replicate
+numpy
