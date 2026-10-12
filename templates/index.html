@@ -102,58 +102,58 @@
 
                 <div class="space-y-3">
                     <!-- 1. Bosh Direktor -->
-                    <div class="p-3.5 rounded-xl bg-[#090d16] border border-amber-500/30 flex items-start gap-3.5 hover:border-amber-500/60 transition-all">
+                    <div id="card-director" onclick="switchAgent('director')" class="agent-card p-3.5 rounded-xl bg-[#090d16] border border-amber-500 ring-2 ring-amber-500/40 shadow-lg shadow-amber-500/10 cursor-pointer hover:scale-[1.01] transition-all flex items-start gap-3.5">
                         <div class="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0">
                             <i data-lucide="shield-check" class="w-5 h-5 text-amber-400"></i>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between">
-                                <h3 class="font-semibold text-sm text-amber-300">Bosh Direktor (Manager)</h3>
-                                <span class="text-[10px] text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full font-mono">NAZORATCHI</span>
+                                <h3 class="font-semibold text-sm text-amber-300">Sardor (Bosh Direktor)</h3>
+                                <span class="text-[10px] text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full font-mono flex items-center gap-1">FAOL</span>
                             </div>
-                            <p class="text-xs text-slate-400 mt-0.5">Topshiriqni xodimlarga bo'ladi, sifatni tekshiradi, hisobotni tasdiqlaydi.</p>
+                            <p class="text-xs text-slate-400 mt-0.5">Topshiriqni jamoaga bo'ladi, sifatni tekshiradi, hisobotni tasdiqlaydi.</p>
                         </div>
                     </div>
 
                     <!-- 2. Moliya Agenti -->
-                    <div class="p-3.5 rounded-xl bg-[#090d16] border border-emerald-500/20 flex items-start gap-3.5 hover:border-emerald-500/50 transition-all">
+                    <div id="card-finance" onclick="switchAgent('finance')" class="agent-card p-3.5 rounded-xl bg-[#090d16] border border-emerald-500/20 cursor-pointer hover:border-emerald-500/60 hover:scale-[1.01] transition-all flex items-start gap-3.5">
                         <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
                             <i data-lucide="trending-up" class="w-5 h-5 text-emerald-400"></i>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between">
-                                <h3 class="font-semibold text-sm text-emerald-300">Moliya va Bozor Tahlili</h3>
+                                <h3 class="font-semibold text-sm text-emerald-300">Javohir (Bosh Iqtisodchi)</h3>
                                 <span class="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full font-mono">EXCEL (.XLSX)</span>
                             </div>
-                            <p class="text-xs text-slate-400 mt-0.5">Internetdan tovar narxlarini izlaydi, hisob-kitob qiladi va Excel fayl yaratadi.</p>
+                            <p class="text-xs text-slate-400 mt-0.5">Internetdan narxlarni izlaydi, tender smetasi va professional Excel tuzadi.</p>
                         </div>
                     </div>
 
                     <!-- 3. Kreativ Agenti -->
-                    <div class="p-3.5 rounded-xl bg-[#090d16] border border-purple-500/20 flex items-start gap-3.5 hover:border-purple-500/50 transition-all">
+                    <div id="card-creative" onclick="switchAgent('creative')" class="agent-card p-3.5 rounded-xl bg-[#090d16] border border-purple-500/20 cursor-pointer hover:border-purple-500/60 hover:scale-[1.01] transition-all flex items-start gap-3.5">
                         <div class="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center shrink-0">
                             <i data-lucide="palette" class="w-5 h-5 text-purple-400"></i>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between">
-                                <h3 class="font-semibold text-sm text-purple-300">Kreativ va Dizayn</h3>
+                                <h3 class="font-semibold text-sm text-purple-300">Madina (Kreativ Dizayner)</h3>
                                 <span class="text-[10px] text-purple-400 bg-purple-400/10 px-2 py-0.5 rounded-full font-mono">PROMPTER</span>
                             </div>
-                            <p class="text-xs text-slate-400 mt-0.5">Ssenariylar, reklama postlari va Midjourney/Flux uchun vizual promptlar.</p>
+                            <p class="text-xs text-slate-400 mt-0.5">Rolik ssenariylari, reklama postlari va fotorealistik Midjourney promptlar.</p>
                         </div>
                     </div>
 
                     <!-- 4. Video & Dasturchi Agenti -->
-                    <div class="p-3.5 rounded-xl bg-[#090d16] border border-blue-500/20 flex items-start gap-3.5 hover:border-blue-500/50 transition-all">
+                    <div id="card-video" onclick="switchAgent('video')" class="agent-card p-3.5 rounded-xl bg-[#090d16] border border-blue-500/20 cursor-pointer hover:border-blue-500/60 hover:scale-[1.01] transition-all flex items-start gap-3.5">
                         <div class="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center shrink-0">
                             <i data-lucide="clapperboard" class="w-5 h-5 text-blue-400"></i>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between">
-                                <h3 class="font-semibold text-sm text-blue-300">Video & IT Arxitektura</h3>
-                                <span class="text-[10px] text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full font-mono">ANIMATSIYA</span>
+                                <h3 class="font-semibold text-sm text-blue-300">Temur (Video Rejissyor & IT)</h3>
+                                <span class="text-[10px] text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full font-mono">VIDEO / STORY</span>
                             </div>
-                            <p class="text-xs text-slate-400 mt-0.5">Rasmlarni jonlantirish (Image-to-Video), sayt arxitekturasi va kodlar.</p>
+                            <p class="text-xs text-slate-400 mt-0.5">Ssilkadan videolarni tahlil qilish, kadrma-kadr hikoya roliklar va IT tizimlar.</p>
                         </div>
                     </div>
                 </div>
@@ -205,8 +205,14 @@
             <!-- STAGE HEADER -->
             <div class="px-6 py-4 border-b border-[#1f293d] bg-[#0d1322]/60 flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span class="text-sm font-semibold text-slate-200">Direktor bilan Muloqot va Jonli Natijalar</span>
+                    <span id="stageAgentDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span id="stageAgentTitle" class="text-sm font-semibold text-slate-200">Sardor (Bosh Direktor) bilan Muloqot</span>
+                            <span id="stageAgentBadge" class="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full font-mono">BOSHLIQ</span>
+                        </div>
+                        <p id="stageAgentSub" class="text-[11px] text-slate-400">Butun jamoani boshqaradi, topshiriqni taqsimlaydi va yakuniy sifatni tekshiradi</p>
+                    </div>
                 </div>
                 <button onclick="clearChat()" class="text-xs text-slate-400 hover:text-rose-400 flex items-center gap-1.5 transition-colors">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
@@ -248,9 +254,26 @@
                     <span class="text-[10px] font-mono text-blue-400">ILTIMOS KUTING</span>
                 </div>
 
+                <!-- Tanlangan fayl ko'rsatkichi (Preview) -->
+                <div id="mediaPreview" class="hidden mb-2 px-3 py-2 rounded-xl bg-slate-800/90 border border-slate-700 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2 text-slate-200">
+                        <i id="mediaPreviewIcon" data-lucide="image" class="w-4 h-4 text-sky-400"></i>
+                        <span id="mediaPreviewName" class="font-medium truncate max-w-xs">fayl.jpg</span>
+                    </div>
+                    <button onclick="clearMedia()" class="text-slate-400 hover:text-rose-400">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
                 <!-- Input form -->
-                <div class="flex items-end gap-3">
+                <div class="flex items-end gap-2.5">
                     
+                    <!-- File / Image / Video attach button -->
+                    <input type="file" id="mediaUpload" accept="image/*,video/*" class="hidden" onchange="handleMediaSelect(event)">
+                    <button id="attachBtn" onclick="document.getElementById('mediaUpload').click()" title="Rasm yoki video biriktirish" class="w-13 h-13 p-3.5 rounded-2xl bg-[#1f293d] hover:bg-slate-700 text-slate-300 border border-slate-700/80 transition-all flex items-center justify-center shrink-0 transform active:scale-95">
+                        <i data-lucide="paperclip" class="w-5 h-5 text-slate-300"></i>
+                    </button>
+
                     <!-- Voice Record Button (Centerpiece) -->
                     <button id="voiceBtn" onclick="toggleVoiceRecording()" title="Ovozli buyruq berish (bosib turing yoki bosing)" class="w-13 h-13 p-3.5 rounded-2xl bg-gradient-to-tr from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-600 text-white shadow-lg shadow-red-500/20 transition-all flex items-center justify-center shrink-0 transform active:scale-95">
                         <i id="micIcon" data-lucide="mic" class="w-6 h-6"></i>
@@ -258,7 +281,7 @@
 
                     <!-- Text input area -->
                     <div class="flex-1 bg-[#090d16] border border-[#1f293d] focus-within:border-brandBlue rounded-2xl p-2 transition-all shadow-inner">
-                        <textarea id="taskInput" rows="2" placeholder="Rahbar topshirig'ini yozing... (yoki mikrofondan ovozli ayting)" class="w-full bg-transparent text-sm text-slate-100 placeholder-slate-500 resize-none outline-none px-2 py-1"></textarea>
+                        <textarea id="taskInput" rows="2" placeholder="Topshiriq bering, video ssilka yoki matn yozing... (yoki mikrofondan ovozli ayting)" class="w-full bg-transparent text-sm text-slate-100 placeholder-slate-500 resize-none outline-none px-2 py-1"></textarea>
                     </div>
 
                     <!-- Send button -->
@@ -310,7 +333,82 @@
             navigator.serviceWorker.register('/static/sw.js').catch(err => console.log(err));
         }
 
-        // 2. HELPER FUNCTIONS
+        // 2. AGENT CONFIG & SWITCHER
+        let currentAgent = 'director';
+
+        const agentConfig = {
+            director: {
+                name: 'Sardor (Bosh Direktor)',
+                badge: 'BOSHLIQ',
+                sub: 'Butun jamoani boshqaradi, topshiriqni taqsimlaydi va yakuniy sifatni tekshiradi',
+                color: 'amber'
+            },
+            finance: {
+                name: 'Javohir (Bosh Iqtisodchi)',
+                badge: 'MOLIYA & BOZOR',
+                sub: 'Sardor nazorati ostida: Bozor narxlari, smeta va Excel (.xlsx) hisobotlari',
+                color: 'emerald'
+            },
+            creative: {
+                name: 'Madina (Kreativ Dizayner)',
+                badge: 'KREATIV & BREND',
+                sub: 'Sardor nazorati ostida: Reklama matnlari, brending va vizual promptlar',
+                color: 'purple'
+            },
+            video: {
+                name: 'Temur (Video Rejissyor & IT)',
+                badge: 'VIDEO & HIKOYA',
+                sub: 'Sardor nazorati ostida: Video ssilka tahlili, kadrma-kadr roliklar va IT',
+                color: 'blue'
+            }
+        };
+
+        function switchAgent(agentId) {
+            currentAgent = agentId;
+            const cfg = agentConfig[agentId];
+
+            // Kartochkalar atrofidagi ringni yangilash
+            document.querySelectorAll('.agent-card').forEach(c => {
+                c.classList.remove('ring-2', 'ring-amber-500/40', 'ring-emerald-500/40', 'ring-purple-500/40', 'ring-blue-500/40');
+            });
+            const activeCard = document.getElementById(`card-${agentId}`);
+            if (activeCard) {
+                activeCard.classList.add('ring-2', `ring-${cfg.color}-500/40`);
+            }
+
+            // Sarlavhani yangilash
+            document.getElementById('stageAgentTitle').innerText = `${cfg.name} bilan Muloqot`;
+            document.getElementById('stageAgentBadge').innerText = cfg.badge;
+            document.getElementById('stageAgentSub').innerText = cfg.sub;
+
+            // Xabarlar panelida bildirishnoma
+            const feed = document.getElementById('chatFeed');
+            const notice = document.createElement('div');
+            notice.className = "p-3 rounded-xl bg-[#0d1322] border border-[#1f293d] text-xs text-center text-slate-300 shadow-sm";
+            notice.innerHTML = `🚪 <strong>${cfg.name}</strong> xonasiga kirdingiz. <em>(Direktor Sardor nazorati ostida ishlaydi)</em>`;
+            feed.appendChild(notice);
+            feed.scrollTop = feed.scrollHeight;
+            lucide.createIcons();
+        }
+
+        // 3. MEDIA HANDLER
+        let attachedFile = null;
+
+        function handleMediaSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            attachedFile = file;
+            document.getElementById('mediaPreviewName').innerText = file.name;
+            document.getElementById('mediaPreview').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function clearMedia() {
+            attachedFile = null;
+            document.getElementById('mediaUpload').value = '';
+            document.getElementById('mediaPreview').classList.add('hidden');
+        }
+
         function setPrompt(text) {
             const input = document.getElementById('taskInput');
             input.value = text;
@@ -323,22 +421,32 @@
             `;
         }
 
-        // 3. SEND TEXT TASK
+        // 4. SEND TEXT & MEDIA TASK
         async function sendTask() {
             const input = document.getElementById('taskInput');
             const text = input.value.trim();
-            if (!text) return;
+            if (!text && !attachedFile) return;
 
-            appendUserMessage(text);
+            let promptToSend = text;
+            if (attachedFile) {
+                promptToSend = (text ? text + "\n" : "") + `📎 [Biriktirilgan media fayl: ${attachedFile.name}]`;
+            }
+
+            appendUserMessage(promptToSend);
             input.value = '';
+            clearMedia();
 
-            showLoading("Direktor xodimlarni safarbar qilmoqda va tahlil qilmoqda...");
+            const cfg = agentConfig[currentAgent];
+            showLoading(`${cfg.name} topshiriq ustida ishlamoqda (Sardor nazoratida)...`);
 
             try {
                 const res = await fetch('/api/task', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ task: text })
+                    body: JSON.stringify({ 
+                        task: promptToSend,
+                        target_agent: currentAgent
+                    })
                 });
                 const data = await res.json();
                 hideLoading();
