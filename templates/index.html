@@ -170,8 +170,8 @@
                         <span>📊 Go'sht narxlari va Excel jadval</span>
                         <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-white transition-all"></i>
                     </button>
-                    <button onclick="setPrompt('Yangi brend uchun 3 ta video reklama ssenariysi va Midjourney uchun fotorealistik rasm promptlarini tayyorlab ber.')" class="text-left p-2.5 rounded-xl bg-[#090d16] hover:bg-slate-800 text-xs text-slate-300 border border-[#1f293d] transition-all flex items-center justify-between group">
-                        <span>🎬 Video ssenariy va rasm promptlari</span>
+                    <button onclick="setPrompt('Labo mashinasi va tezkor yetkazib berish xizmati bo\'yicha 3 kadrli qiziqarli reklama roligi yaratib, haqiqiy MP4 video fayl qilib ber.')" class="text-left p-2.5 rounded-xl bg-[#090d16] hover:bg-slate-800 text-xs text-slate-300 border border-[#1f293d] transition-all flex items-center justify-between group">
+                        <span>🎬 Reklama roligi va tayyor MP4 video</span>
                         <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-white transition-all"></i>
                     </button>
                     <button onclick="setPrompt('IT loyiha uchun oylik xarajatlar smetasini tuzib, to\'liq hisob-kitob qilib Excel fayl qilib ber.')" class="text-left p-2.5 rounded-xl bg-[#090d16] hover:bg-slate-800 text-xs text-slate-300 border border-[#1f293d] transition-all flex items-center justify-between group">
@@ -186,7 +186,7 @@
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
                         <i data-lucide="folder-down" class="w-4 h-4 text-emerald-400"></i>
-                        Tayyor Excel Fayllar
+                        Tayyor Fayllar & Videolar
                     </h2>
                     <button onclick="loadFiles()" class="text-slate-400 hover:text-white text-xs flex items-center gap-1">
                         <i data-lucide="refresh-cw" class="w-3 h-3"></i>
@@ -236,7 +236,7 @@
                             Assalomu alaykum, hurmatli Rahbar! Butun jamoa (Moliya, Kreativ, Video va Dasturchilar) ishga to'liq shay holatda.
                         </p>
                         <p class="text-sm text-slate-400 mt-2 leading-relaxed">
-                            Siz menga pastdagi maydonga yozma ravishda yoki qizil <strong>Mikrofon</strong> tugmasini bosib <strong>ovozli buyruq</strong> berishingiz mumkin. Men barcha ma'lumotlarni donama-dona tartibda tahlil qilib, kerak bo'lsa haqiqiy <strong>Excel (.xlsx)</strong> faylini yaratib beraman.
+                            Siz menga pastdagi maydonga yozma ravishda yoki qizil <strong>Mikrofon</strong> tugmasini bosib <strong>ovozli buyruq</strong> berishingiz mumkin. Kerak bo'lsa qahramon yoki mahsulot <strong>rasmlarini</strong>, video ssilkalarni biriktiring — jamoamiz haqiqiy <strong>Excel (.xlsx)</strong> jadvallari va yuklab olinadigan <strong>Video roliklar (.mp4)</strong> tayyorlab beradi!
                         </p>
                     </div>
                 </div>
@@ -254,23 +254,17 @@
                     <span class="text-[10px] font-mono text-blue-400">ILTIMOS KUTING</span>
                 </div>
 
-                <!-- Tanlangan fayl ko'rsatkichi (Preview) -->
-                <div id="mediaPreview" class="hidden mb-2 px-3 py-2 rounded-xl bg-slate-800/90 border border-slate-700 flex items-center justify-between text-xs">
-                    <div class="flex items-center gap-2 text-slate-200">
-                        <i id="mediaPreviewIcon" data-lucide="image" class="w-4 h-4 text-sky-400"></i>
-                        <span id="mediaPreviewName" class="font-medium truncate max-w-xs">fayl.jpg</span>
-                    </div>
-                    <button onclick="clearMedia()" class="text-slate-400 hover:text-rose-400">
-                        <i data-lucide="x" class="w-4 h-4"></i>
-                    </button>
+                <!-- Bir nechta fayllar ko'rsatkichi (Multiple Previews) -->
+                <div id="mediaPreviewContainer" class="hidden mb-2.5 flex flex-wrap gap-2 items-center max-h-24 overflow-y-auto">
+                    <!-- Dinamik ravishda tanlangan rasmlar chip ko'rinishida chiqadi -->
                 </div>
 
                 <!-- Input form -->
                 <div class="flex items-end gap-2.5">
                     
-                    <!-- File / Image / Video attach button -->
-                    <input type="file" id="mediaUpload" accept="image/*,video/*" class="hidden" onchange="handleMediaSelect(event)">
-                    <button id="attachBtn" onclick="document.getElementById('mediaUpload').click()" title="Rasm yoki video biriktirish" class="w-13 h-13 p-3.5 rounded-2xl bg-[#1f293d] hover:bg-slate-700 text-slate-300 border border-slate-700/80 transition-all flex items-center justify-center shrink-0 transform active:scale-95">
+                    <!-- File / Image / Video attach button (MULTIPLE TANLASH IMKONI) -->
+                    <input type="file" id="mediaUpload" accept="image/*,video/*" multiple class="hidden" onchange="handleMediaSelect(event)">
+                    <button id="attachBtn" onclick="document.getElementById('mediaUpload').click()" title="Bir nechta rasm yoki video biriktirish" class="w-13 h-13 p-3.5 rounded-2xl bg-[#1f293d] hover:bg-slate-700 text-slate-300 border border-slate-700/80 transition-all flex items-center justify-center shrink-0 transform active:scale-95">
                         <i data-lucide="paperclip" class="w-5 h-5 text-slate-300"></i>
                     </button>
 
@@ -391,22 +385,56 @@
             lucide.createIcons();
         }
 
-        // 3. MEDIA HANDLER
-        let attachedFile = null;
+        // 3. MULTI-MEDIA HANDLER (BIR NECHTA RASM VA VIDEO)
+        let attachedFiles = [];
 
         function handleMediaSelect(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            attachedFile = file;
-            document.getElementById('mediaPreviewName').innerText = file.name;
-            document.getElementById('mediaPreview').classList.remove('hidden');
-            lucide.createIcons();
+            const files = Array.from(e.target.files);
+            if (!files.length) return;
+
+            files.forEach(f => {
+                // Dublikat bo'lmasligi uchun tekshiramiz
+                if (!attachedFiles.some(existing => existing.name === f.name)) {
+                    attachedFiles.push(f);
+                }
+            });
+
+            renderMediaPreviews();
+            // Inputni tozalaymiz, shunda foydalanuvchi yana skrepkani bosib boshqa rasm ham qo'sha oladi
+            document.getElementById('mediaUpload').value = '';
         }
 
-        function clearMedia() {
-            attachedFile = null;
+        function removeMedia(index) {
+            attachedFiles.splice(index, 1);
+            renderMediaPreviews();
+        }
+
+        function clearAllMedia() {
+            attachedFiles = [];
             document.getElementById('mediaUpload').value = '';
-            document.getElementById('mediaPreview').classList.add('hidden');
+            renderMediaPreviews();
+        }
+
+        function renderMediaPreviews() {
+            const container = document.getElementById('mediaPreviewContainer');
+            if (attachedFiles.length === 0) {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+                return;
+            }
+
+            container.classList.remove('hidden');
+            container.innerHTML = attachedFiles.map((file, idx) => `
+                <div class="px-2.5 py-1.5 rounded-xl bg-slate-800/95 border border-slate-700/80 flex items-center gap-2 text-xs text-slate-200 shadow-sm animate-fadeIn">
+                    <i data-lucide="${file.type.startsWith('video') ? 'video' : 'image'}" class="w-3.5 h-3.5 ${file.type.startsWith('video') ? 'text-indigo-400' : 'text-sky-400'}"></i>
+                    <span class="font-medium truncate max-w-[140px] sm:max-w-[200px]" title="${file.name}">${file.name}</span>
+                    <button onclick="removeMedia(${idx})" class="text-slate-400 hover:text-rose-400 transition-colors p-0.5" title="O'chirish">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
         }
 
         function setPrompt(text) {
@@ -425,16 +453,24 @@
         async function sendTask() {
             const input = document.getElementById('taskInput');
             const text = input.value.trim();
-            if (!text && !attachedFile) return;
+            if (!text && attachedFiles.length === 0) return;
 
-            let promptToSend = text;
-            if (attachedFile) {
-                promptToSend = (text ? text + "\n" : "") + `📎 [Biriktirilgan media fayl: ${attachedFile.name}]`;
+            const formData = new FormData();
+            formData.append('task', text);
+            formData.append('target_agent', currentAgent);
+            attachedFiles.forEach(file => {
+                formData.append('files', file);
+            });
+
+            let displayMsg = text;
+            if (attachedFiles.length > 0) {
+                const names = attachedFiles.map(f => f.name).join(', ');
+                displayMsg = (text ? text + "\n\n" : "") + `📎 [Biriktirilgan media fayllar (${attachedFiles.length} ta): ${names}]`;
             }
 
-            appendUserMessage(promptToSend);
+            appendUserMessage(displayMsg);
             input.value = '';
-            clearMedia();
+            clearAllMedia();
 
             const cfg = agentConfig[currentAgent];
             showLoading(`${cfg.name} topshiriq ustida ishlamoqda (Sardor nazoratida)...`);
@@ -442,17 +478,13 @@
             try {
                 const res = await fetch('/api/task', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        task: promptToSend,
-                        target_agent: currentAgent
-                    })
+                    body: formData
                 });
                 const data = await res.json();
                 hideLoading();
 
                 if (data.status === 'success') {
-                    appendDirectorResponse(data.report, data.excel_file);
+                    appendDirectorResponse(data.report, data.excel_file, data.video_file);
                     loadFiles();
                 } else {
                     appendError(data.error || "Noma'lum xatolik yuz berdi");
@@ -523,7 +555,7 @@
                 hideLoading();
 
                 if (data.status === 'success') {
-                    appendDirectorResponse(data.report, data.excel_file);
+                    appendDirectorResponse(data.report, data.excel_file, data.video_file);
                     loadFiles();
                 } else {
                     appendError(data.error || "Ovozni tushunishda xatolik");
@@ -566,7 +598,7 @@
             feed.scrollTop = feed.scrollHeight;
         }
 
-        function appendDirectorResponse(reportMarkdown, excelFile) {
+        function appendDirectorResponse(reportMarkdown, excelFile, videoFile) {
             const feed = document.getElementById('chatFeed');
             const el = document.createElement('div');
             el.className = "flex gap-4 items-start";
@@ -592,6 +624,42 @@
                 `;
             }
 
+            let videoCard = '';
+            if (videoFile) {
+                videoCard = `
+                    <div class="mt-4 p-4 rounded-xl bg-blue-950/40 border border-blue-500/40 shadow-xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                                    <i data-lucide="clapperboard" class="w-4 h-4 text-blue-400"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-blue-300">${videoFile}</p>
+                                    <p class="text-[10px] text-slate-400">Temur Rejissyor: Haqiqiy HD Video Rolik (.mp4)</p>
+                                </div>
+                            </div>
+                            <span class="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-mono">TAYYOR</span>
+                        </div>
+                        
+                        <!-- Video Player -->
+                        <div class="rounded-xl overflow-hidden bg-black/90 border border-slate-800 shadow-inner flex justify-center">
+                            <video controls playsinline preload="metadata" class="w-full max-h-96 rounded-xl" style="background:#000;">
+                                <source src="/api/download/${videoFile}" type="video/mp4">
+                                Brauzeringiz videoni qo'llab-quvvatlamaydi.
+                            </video>
+                        </div>
+                        
+                        <!-- Video Download Button -->
+                        <div class="flex justify-end pt-1">
+                            <a href="/api/download/${videoFile}" download="${videoFile}" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-md shadow-blue-500/25">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                                <span>Videoni Yuklab Olish (.mp4)</span>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }
+
             el.innerHTML = `
                 <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-md">
                     <i data-lucide="shield-check" class="w-5 h-5 text-amber-400"></i>
@@ -607,6 +675,7 @@
                         ${marked.parse(reportMarkdown || '')}
                     </div>
                     ${downloadCard}
+                    ${videoCard}
                 </div>
             `;
             feed.appendChild(el);
@@ -637,21 +706,53 @@
                 const res = await fetch('/api/files');
                 const data = await res.json();
                 const list = document.getElementById('filesList');
-                if (data.files && data.files.length > 0) {
-                    list.innerHTML = data.files.map(f => `
+                
+                const xlsxList = data.xlsx_files || [];
+                const mp4List = data.mp4_files || [];
+                
+                if (xlsxList.length === 0 && mp4List.length === 0) {
+                    list.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-4">Hozircha yangi fayllar yo'q</p>`;
+                    return;
+                }
+                
+                let html = '';
+                
+                // 1. Videolar
+                mp4List.forEach(v => {
+                    html += `
+                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#090d16] border border-blue-500/30 hover:border-blue-500/60 transition-all text-xs">
+                            <div class="flex items-center gap-2 overflow-hidden">
+                                <i data-lucide="video" class="w-4 h-4 text-blue-400 shrink-0"></i>
+                                <span class="truncate text-slate-200 font-medium" title="${v}">${v}</span>
+                            </div>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <a href="/api/download/${v}" target="_blank" title="Ko'rish" class="text-blue-400 hover:text-white p-1">
+                                    <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                                </a>
+                                <a href="/api/download/${v}" download="${v}" title="Yuklab olish" class="text-emerald-400 hover:text-white p-1">
+                                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                // 2. Excel jadvallar
+                xlsxList.forEach(f => {
+                    html += `
                         <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#090d16] border border-[#1f293d] hover:border-emerald-500/40 transition-all text-xs">
                             <div class="flex items-center gap-2 overflow-hidden">
                                 <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-                                <span class="truncate text-slate-200">${f}</span>
+                                <span class="truncate text-slate-200" title="${f}">${f}</span>
                             </div>
-                            <a href="/api/download/${f}" download class="text-emerald-400 hover:text-emerald-300 p-1">
+                            <a href="/api/download/${f}" download="${f}" title="Yuklab olish" class="text-emerald-400 hover:text-emerald-300 p-1 shrink-0">
                                 <i data-lucide="download" class="w-3.5 h-3.5"></i>
                             </a>
                         </div>
-                    `).join('');
-                } else {
-                    list.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-4">Hozircha yangi fayllar yo'q</p>`;
-                }
+                    `;
+                });
+                
+                list.innerHTML = html;
                 lucide.createIcons();
             } catch (e) {
                 console.log(e);
