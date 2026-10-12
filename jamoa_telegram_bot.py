@@ -13,9 +13,10 @@ except ImportError:
     print("Xatolik: Kutubxonalar yo'q. Terminalda yozing: pip install google-genai pyTelegramBotAPI flask openpyxl")
     exit(1)
 
-# XAVFSIZLIK: Kalitlarni serverning o'zidan (Environment) olamiz
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "8765454146:AAHyUPx9s0HK7-CfLiZLx_jy5tqiQNp9DxY")
+# XAVFSIZLIK: Kalitlarni FAQAT serverdan (Environment) olamiz, hech qachon ochiq yozmaymiz!
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+OWNER_ID = os.environ.get("OWNER_ID", "") # Sizning shaxsiy Telegram ID raqamingiz
 
 # =======================================================
 # UPTIMEROBOT UCHUN WEB-SERVER
@@ -180,12 +181,22 @@ def main():
             except Exception as e:
                 print(f"Fayl yuborishda xatolik: {e}")
 
-    @bot.message_handler(commands=['start'])
+    def check_access(message):
+        if OWNER_ID and str(message.chat.id) != str(OWNER_ID):
+            bot.reply_to(message, "⛔ Kechirasiz! Bu shaxsiy AI Agent boti. Undan faqat uning haqiqiy egasi foydalana oladi.")
+            return False
+        return True
+
+    @bot.message_handler(commands=['start', 'myid'])
     def send_welcome(message):
-        bot.reply_to(message, "Salom hurmatli rahbar! Men sizning Bosh Direktoringizman.\nMenga xohlagan topshiriqni bering, barcha ma'lumotlarni donama-dona qilib tahlil qilib, kerak bo'lsa tayyor Excel (.xlsx) faylini ham yuklab beraman! 📊")
+        if not check_access(message):
+            return
+        bot.reply_to(message, f"Salom hurmatli rahbar! Men sizning shaxsiy Bosh Direktoringizman.\n\n🆔 Sizning Telegram ID: `{message.chat.id}`\n\nMenga xohlagan topshiriqni bering, barcha ma'lumotlarni donama-dona qilib tahlil qilib, kerak bo'lsa tayyor Excel (.xlsx) faylini ham yuklab beraman! 📊", parse_mode='Markdown')
 
     @bot.message_handler(content_types=['text'])
     def handle_text(message):
+        if not check_access(message):
+            return
         bot.send_chat_action(message.chat.id, 'typing')
         try:
             director = get_director(message.chat.id)
@@ -198,6 +209,8 @@ def main():
 
     @bot.message_handler(content_types=['voice'])
     def handle_voice(message):
+        if not check_access(message):
+            return
         bot.send_chat_action(message.chat.id, 'typing')
         try:
             file_info = bot.get_file(message.voice.file_id)
