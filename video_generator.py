@@ -5,6 +5,9 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import imageio
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+REPLICATE_API_TOKEN = os.environ.get("REPLICATE_API_TOKEN", "")
+if "REPLICATE_API_TOKEN" not in os.environ and REPLICATE_API_TOKEN:
+    os.environ["REPLICATE_API_TOKEN"] = REPLICATE_API_TOKEN
 
 def get_font(size, bold=False):
     """Windows va Linux (Render) uchun mos shriftni topadi."""
@@ -55,39 +58,109 @@ def wrap_text(text, font, max_width, draw):
         lines.append(' '.join(current_line))
     return lines
 
+def extract_video_from_url(url: str, output_folder: str = None, download: bool = False) -> dict:
+    """
+    Instagram, TikTok, YouTube ssilkasidagi videoni tahlil qiladi va kerak bo'lsa yuklab oladi.
+    """
+    if not output_folder:
+        output_folder = os.path.join(BASE_DIR, 'uploads')
+    os.makedirs(output_folder, exist_ok=True)
+    
+    try:
+        import yt_dlp
+        ydl_opts = {
+            'outtmpl': os.path.join(output_folder, 'ref_%(id)s.%(ext)s'),
+            'format': 'mp4/best',
+            'quiet': True,
+            'no_warnings': True
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=download)
+            video_path = ydl.prepare_filename(info) if download else None
+            return {
+                'status': 'success',
+                'title': info.get('title', ''),
+                'description': info.get('description', ''),
+                'uploader': info.get('uploader', ''),
+                'duration': info.get('duration', 0),
+                'thumbnail': info.get('thumbnail', ''),
+                'video_path': video_path
+            }
+    except Exception as e:
+        print(f"[yt-dlp xatolik]: {e}")
+        return {'status': 'error', 'error': str(e)}
+
+def try_replicate_faceswap(source_image_path: str, target_video_path: str, output_path: str) -> bool:
+    """
+    Replicate AI orqali videodagi odamning yuzini yangi rasm yuziga almashtirish (Face-Swap).
+    """
+    token = os.environ.get("REPLICATE_API_TOKEN", "") or REPLICATE_API_TOKEN
+    if not token or not output_path or not source_image_path or not target_video_path:
+        return False
+        
+    try:
+        import replicate
+        import requests
+        print("[Replicate FaceSwap]: Video Face-Swap boshlandi...")
+        
+        with open(source_image_path, "rb") as s_img, open(target_video_path, "rb") as t_vid:
+            output = replicate.run(
+                "ddvinh1/video-faceswap-gpu:50a0a0018673852629578e627576326036b407e0dbd8cf8a0b5028296726dc5c",
+                input={
+                    "source_image": s_img,
+                    "target_video": t_vid,
+                    "enhance": True
+                }
+            )
+            
+        if output:
+            url = str(output)
+            print(f"[Replicate FaceSwap]: Tayyor: {url}")
+            r = requests.get(url, timeout=180)
+            if r.status_code == 200:
+                with open(output_path, "wb") as f:
+                    f.write(r.content)
+                return True
+    except Exception as e:
+        print(f"[Replicate FaceSwap xatosi]: {e}")
+        
+    return False
+
 def try_replicate_video(prompt, image_path=None, output_path=None):
     """Agar REPLICATE_API_TOKEN mavjud bo'lsa, Replicate orqali AI video yaratishga urinadi."""
-    token = os.environ.get("REPLICATE_API_TOKEN", "")
+    token = os.environ.get("REPLICATE_API_TOKEN", "") or REPLICATE_API_TOKEN
     if not token or not output_path:
         return False
         
     try:
         import replicate
+        import requests
         print("🚀 [Replicate AI]: Video generatsiya boshlandi...")
         
-        # Minimax Video-01 yoki Kling
+        # Minimax Video-01
         if image_path and os.path.exists(image_path):
             with open(image_path, "rb") as img_file:
                 output = replicate.run(
                     "minimax/video-01",
                     input={
-                        "prompt": prompt or "High quality cinematic motion, highly detailed 4k",
-                        "image": img_file
+                        "prompt": prompt or "High quality cinematic motion, highly detailed 4k, smooth cinematic video",
+                        "first_frame_image": img_file,
+                        "prompt_optimizer": True
                     }
                 )
         else:
             output = replicate.run(
                 "minimax/video-01",
                 input={
-                    "prompt": prompt or "Cinematic commercial video clip, ultra realistic, 4k"
+                    "prompt": prompt or "Cinematic commercial video clip, ultra realistic, 4k",
+                    "prompt_optimizer": True
                 }
             )
             
         if output:
-            import requests
             url = str(output)
             print(f"[Replicate AI]: Video tayyor: {url}")
-            r = requests.get(url, timeout=120)
+            r = requests.get(url, timeout=180)
             if r.status_code == 200:
                 with open(output_path, "wb") as f:
                     f.write(r.content)
@@ -97,20 +170,27 @@ def try_replicate_video(prompt, image_path=None, output_path=None):
         
     return False
 
-def render_dynamic_video(fayl_nomi: str, mavzu: str, kadrlar: list, uploaded_images: list = None, vertical: bool = True) -> str:
+def render_dynamic_video(fayl_nomi: str, mavzu: str, kadrlar: list, uploaded_images: list = None, vertical: bool = True, reference_video: str = None) -> str:
     """
-    To'liq avtonom, professional montaj qilingan MP4 video rolik yaratuvchi dvigatel.
-    Yuklangan rasmlarni harakatlantiradi (Ken Burns zoom effect), 
-    kadrlar sarlavhalari, diktor matnlari va chiroyli animatsiyali subtitrlarni birlashtiradi.
+    To'liq professional video rolik yaratuvchi dvigatel.
+    1. Agar reference_video va rasm bo'lsa -> Replicate FaceSwap bajaradi.
+    2. Agar matn/kadrlar bo'lsa -> Replicate Minimax AI video yaratadi.
+    3. Agar Replicate offline bo'lsa -> Avtonom montaj dvigateli ishlaydi.
     """
     if not fayl_nomi.endswith('.mp4'):
         fayl_nomi = fayl_nomi.replace('.avi', '').replace('.mov', '') + '.mp4'
         
     output_path = os.path.join(BASE_DIR, fayl_nomi)
-    
-    # 1. Replicate sinab ko'ramiz
-    prompt_full = f"{mavzu}. " + " ".join([k.get('vizual', '') or k.get('matn', '') for k in kadrlar if isinstance(k, dict)])
     first_img = uploaded_images[0] if (uploaded_images and len(uploaded_images) > 0) else None
+    
+    # 1. Face-Swap tekshirish
+    if reference_video and os.path.exists(reference_video) and first_img:
+        print("🎭 [Face-Swap]: Referans video va yuz rasmi orqali Face-Swap bajarilmoqda...")
+        if try_replicate_faceswap(source_image_path=first_img, target_video_path=reference_video, output_path=output_path):
+            return fayl_nomi
+            
+    # 2. Replicate AI Generatsiya sinab ko'ramiz
+    prompt_full = f"{mavzu}. " + " ".join([k.get('vizual', '') or k.get('matn', '') for k in kadrlar if isinstance(k, dict)])
     if try_replicate_video(prompt_full, image_path=first_img, output_path=output_path):
         return fayl_nomi
 
@@ -126,9 +206,7 @@ def render_dynamic_video(fayl_nomi: str, mavzu: str, kadrlar: list, uploaded_ima
     # Kadrlar ro'yxatini to'g'irlash
     if not kadrlar or not isinstance(kadrlar, list):
         kadrlar = [
-            {"sarlavha": "1-Kadr: Kirish", "matn": mavzu or "Yangi loyiha taqdimoti"},
-            {"sarlavha": "2-Kadr: Asosiy Tafsilot", "matn": "Barcha ma'lumotlar va qulayliklar"},
-            {"sarlavha": "3-Kadr: Yakun & Bog'lanish", "matn": "Hoziroq biz bilan bog'laning!"}
+            {"sarlavha": mavzu or "Video Taqdimot", "matn": ""}
         ]
         
     # Yuklangan rasmlarni tayyorlash

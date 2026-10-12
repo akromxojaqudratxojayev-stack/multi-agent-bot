@@ -7,3 +7,4 @@ imageio
 imageio-ffmpeg
 replicate
 numpy
+yt-dlp

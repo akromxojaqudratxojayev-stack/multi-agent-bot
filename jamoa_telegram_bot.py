@@ -14,12 +14,15 @@ except ImportError:
     print("Xatolik: Kutubxonalar yo'q. Terminalda yozing: pip install pyTelegramBotAPI flask openpyxl requests pillow imageio imageio-ffmpeg")
     exit(1)
 
-from video_generator import render_dynamic_video
+from video_generator import render_dynamic_video, extract_video_from_url, try_replicate_faceswap, try_replicate_video
 
 # XAVFSIZLIK: Kalitlarni serverdan olamiz
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct")
+REPLICATE_API_TOKEN = os.environ.get("REPLICATE_API_TOKEN", "")
+if "REPLICATE_API_TOKEN" not in os.environ and REPLICATE_API_TOKEN:
+    os.environ["REPLICATE_API_TOKEN"] = REPLICATE_API_TOKEN
 OWNER_ID = os.environ.get("OWNER_ID", "")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -169,7 +172,9 @@ SYSTEM_PROMPT = (
     "   - Excel UMUMAN qilinmaydi! Hech qanday excel funksiyasini chaqirma!\n"
     "3. AGAR FOYDALANUVCHI MATN, REKLAMA POSTI, MASLAHAT YOKI TUSHUNTIRISH SO'RASA:\n"
     "   - Hech qanday fayl yaratma! Faqat aniq, tushunarli va chiroyli matn bilan javob ber.\n"
-    "4. BIR VAQTDA HAM EXCEL, HAM VIDEO BERISH QAT'IYAN TAQIQLANADI! Har bir so'rovga faqat 1 ta tegishli natija berilsin."
+    "4. BIR VAQTDA HAM EXCEL, HAM VIDEO BERISH QAT'IYAN TAQIQLANADI! Har bir so'rovga faqat 1 ta tegishli natija berilsin.\n"
+    "5. REPLICATE AI VIDEOLAR VA FACE-SWAP:\n"
+    "   - Replicate AI (Minimax Video va Face-Swap) kaliti to'liq ulangan va faol! Agar foydalanuvchi video yoki face-swap so'rasa, Temur 'video_rolik_yaratish' funksiyasini chaqirib haqiqiy AI video yoki video face-swap yaratadi!\n"
 )
 
 def ask_openrouter(messages, tools=None):
@@ -203,6 +208,26 @@ def ask_openrouter(messages, tools=None):
 
 def process_agent_request(user_text, target_agent='director', uploaded_images=None):
     """Foydalanuvchi topshirig'ini bajarib, faqat so'ralgan natijani qaytaradi"""
+    # 0. Ssilka tahlili: Agar matnda Instagram, TikTok, YouTube ssilka bo'lsa, haqiqiy ma'lumotni olamiz
+    found_video_url = None
+    import re
+    url_match = re.search(r'(https?://[^\s]+)', user_text)
+    if url_match:
+        candidate_url = url_match.group(1)
+        if any(d in candidate_url.lower() for d in ['instagram.com', 'tiktok.com', 'youtube.com', 'youtu.be']):
+            found_video_url = candidate_url
+            try:
+                info = extract_video_from_url(found_video_url)
+                if info.get('status') == 'success':
+                    user_text += (
+                        f"\n\n[SSILKA BO'YICHA ANIQ REAL MA'LUMOT]:\n"
+                        f"• Muallif/Kanal: {info.get('uploader')}\n"
+                        f"• Video Nomi: {info.get('title')}\n"
+                        f"• Video Asosiy Tavsifi: {info.get('description')}\n"
+                    )
+            except Exception as e:
+                print("Ssilka tahlili xatosi:", e)
+
     if target_agent == 'finance':
         system_instruction = (
             "Sen Javohir — Bosh Iqtisodchi & Moliya tahlilchisisan. Foydalanuvchi narxlar, hisob-kitob yoki Excel jadval so'radi. "
@@ -266,11 +291,19 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
                 })
             elif t_name == 'video_rolik_yaratish' and not created_excel:
                 try:
+                    ref_vid = None
+                    if found_video_url and uploaded_images:
+                        print(f"📥 [Referans video]: {found_video_url} yuklab olinmoqda...")
+                        v_info = extract_video_from_url(found_video_url, download=True)
+                        if v_info.get('video_path') and os.path.exists(v_info['video_path']):
+                            ref_vid = v_info['video_path']
+                            
                     v_res = render_dynamic_video(
                         args.get('video_nomi', 'rolik.mp4'),
                         args.get('mavzu', 'Video taqdimot'),
                         args.get('kadrlar', []),
-                        uploaded_images=uploaded_images
+                        uploaded_images=uploaded_images,
+                        reference_video=ref_vid
                     )
                     created_video = v_res
                     created_excel = None  # Excel bo'lmasligi shart!
