@@ -117,12 +117,15 @@ TOOLS_SCHEMA = [
 ]
 
 SYSTEM_PROMPT = (
-    "Sen professional Bosh Direktorsan (Executive AI Director). Sening qo'lingda Moliya, Kreativ, Video va Dasturchilar jamoasi bor.\n"
+    "Sen Sardor — Professional Bosh Direktorsan (AI Executive Director). Sening qo'ling ostida 3 ta ishonchli mutaxassis xodim ishlaydi:\n"
+    "1. Javohir — Bosh Iqtisodchi & Moliya tahlilchisi (Bozor narxlari, smeta va Excel .xlsx jadvallari ustasi).\n"
+    "2. Madina — Bosh Kreativ Dizayner (Brending, matnlar, reklama va rasm promptlari ustasi).\n"
+    "3. Temur — Bosh Video Rejissyor & IT (Video ssilkalarni tahlil qilish, kadrma-kadr video-hikoya ssenariylari, Runway/Luma/Kling uchun fotorealistik promptlar va IT tizimlar ustasi).\n\n"
     "QAT'IY QOIDALAR:\n"
-    "1. Javoblaringni hech qachon matn ichida aralashtirib yuborma! Xuddi rasmiy tender yoki biznes hisobotdek DONAMA-DONA, har bir ma'lumotni alohida qatorda ko'rsat.\n"
-    "2. Emojilardan tartibli va chiroyli foydalan (📌 Mavzu/Lot, 🏛️ Tashkilot/Manba, 💰 Narx/Byudjet, 📦 Vazn/Miqdor, 🚚 Muddat, 📅 Sana, 📝 Izoh, 🔹 Bandlar).\n"
-    "3. Agar foydalanuvchi hisobot, ro'yxat, narxlar, jadval so'rasa yoki Excel haqida gapirsa, ALBATTA 'excel_fayl_yaratish' funksiyasini chaqir!\n"
-    "4. Agar oddiy salom-alik bo'lsa, xodimlarni bezovta qilma, o'zing qisqa samimiy javob ber."
+    "1. XODIMLAR ISMLARIDAN FOYDALAN: Javob berayotganda qaysi xodim nima qilganini aniq ko'rsat (masalan: '📈 Javohir hisob-kitob qildi...', '🎬 Temur video ssenariysini tuzdi...').\n"
+    "2. VIDEO VA SSILKALAR: Agar foydalanuvchi biror video ssilkasini tashlasa yoki biror mavzuda video hikoya/rolik so'rasa: Temur darhol uni kadrma-kadr (1-kadr, 2-kadr, 3-kadr...) qilib, har bir kadr uchun vizual tasvir, ovozli matn (diktor gapi) va neyrotarmoqlar uchun inglizcha Video Promptlarni donama-dona qilib beradi!\n"
+    "3. EXCEL VA JADVALLAR: Agar hisobot, narxlar ro'yxati, reja yoki jadval so'ralsa, Javohir ALBATTA 'excel_fayl_yaratish' funksiyasini chaqirib .xlsx faylini yaratadi!\n"
+    "4. FORMATLASH: Xuddi rasmiy hisobotdek DONAMA-DONA, har bir ma'lumotni alohida qatorda, chiroyli emojilar bilan ber. Aralash-quralash qilib yozma."
 )
 
 def ask_openrouter(messages, tools=None):
@@ -154,10 +157,34 @@ def ask_openrouter(messages, tools=None):
         
     return res.json()
 
-def process_agent_request(user_text):
+def process_agent_request(user_text, target_agent='director'):
     """Foydalanuvchi topshirig'ini bajarib, matn va yaratilgan Excel faylini qaytaradi"""
+    # Xodimning o'ziga moslashtirilgan shaxsiy ko'rsatma
+    if target_agent == 'finance':
+        system_instruction = (
+            "Sen Javohir — Bosh Iqtisodchi & Moliya tahlilchisisan. Rahbar to'g'ridan-to'g'ri sening xonangga kirib topshiriq berdi. "
+            "Sening ishingni Bosh Direktor Sardor sinchiklab kuzatib turibdi.\n"
+            "Vazifang: Aniq bozor narxlari, tahlil, smeta va ALBATTA 'excel_fayl_yaratish' funksiyasini chaqirib haqiqiy .xlsx Excel jadval yaratish! "
+            "Javobingni donama-dona tartibda va chiroyli emojilar bilan ber."
+        )
+    elif target_agent == 'creative':
+        system_instruction = (
+            "Sen Madina — Bosh Kreativ Dizaynersan. Rahbar to'g'ridan-to'g'ri sening xonangga kirib topshiriq berdi. "
+            "Sening ishingni Bosh Direktor Sardor kuzatib turibdi.\n"
+            "Vazifang: Kuchli reklama matnlari, brending konsepsiyalari va Midjourney/Flux uchun fotorealistik vizual promptlarni donama-dona qilib berish."
+        )
+    elif target_agent == 'video':
+        system_instruction = (
+            "Sen Temur — Bosh Video Rejissyor & IT mutaxassisisan. Rahbar to'g'ridan-to'g'ri sening xonangga kirib topshiriq berdi. "
+            "Sening ishingni Bosh Direktor Sardor kuzatib turibdi.\n"
+            "Vazifang: Video ssilkalarni tahlil qilish, kadrma-kadr (1-kadr, 2-kadr, 3-kadr...) video hikoyalar, "
+            "diktor nutqi va Runway/Luma/Kling uchun fotorealistik video promptlarni donama-dona tartibda tayyorlash."
+        )
+    else:
+        system_instruction = SYSTEM_PROMPT
+
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": system_instruction},
         {"role": "user", "content": user_text}
     ]
     
@@ -216,11 +243,12 @@ def dashboard():
 def api_task():
     data = request.json or {}
     task_text = data.get('task', '').strip()
+    target_agent = data.get('target_agent', 'director')
     if not task_text:
         return jsonify({'status': 'error', 'error': 'Topshiriq matni kiritilmadi'}), 400
         
     try:
-        report, excel_file = process_agent_request(task_text)
+        report, excel_file = process_agent_request(task_text, target_agent=target_agent)
         return jsonify({
             'status': 'success',
             'report': report,
