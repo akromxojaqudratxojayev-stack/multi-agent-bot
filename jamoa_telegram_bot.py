@@ -1,33 +1,31 @@
 import os
 import threading
 import glob
+import json
+import base64
 try:
     import telebot
     from flask import Flask, render_template, request, jsonify, send_from_directory
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from openpyxl.utils import get_column_letter
-    from google import genai
-    from google.genai import types
+    import requests
 except ImportError:
-    print("Xatolik: Kutubxonalar yo'q. Terminalda yozing: pip install google-genai pyTelegramBotAPI flask openpyxl")
+    print("Xatolik: Kutubxonalar yo'q. Terminalda yozing: pip install pyTelegramBotAPI flask openpyxl requests")
     exit(1)
 
-# XAVFSIZLIK: Kalitlarni serverning o'zidan (Environment) olamiz
+# XAVFSIZLIK: Kalitlarni serverdan olamiz
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
+OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct")
 OWNER_ID = os.environ.get("OWNER_ID", "")
 
-# Flask Web Server & Dashboard
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(
     __name__,
     template_folder=os.path.join(BASE_DIR, 'templates'),
     static_folder=os.path.join(BASE_DIR, 'static')
 )
-
-# Gemini Klienti
-client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 # =======================================================
 # HAQIQIY EXCEL (.XLSX) YARATISH ASBOBI
@@ -83,81 +81,129 @@ def excel_fayl_yaratish(fayl_nomi: str, ustunlar: list[str], qatorlar: list[list
     return fayl_nomi
 
 # =======================================================
-# AI MULTI-AGENT ARXITEKTURASI
+# OPENROUTER AI ENGINE (MULTI-AGENT CORE)
 # =======================================================
-def create_director_session():
-    if not client:
-        return None
+TOOLS_SCHEMA = [
+    {
+        "type": "function",
+        "function": {
+            "name": "excel_fayl_yaratish",
+            "description": "Professional Excel (.xlsx) jadval faylini yaratish",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "fayl_nomi": {
+                        "type": "string",
+                        "description": "Fayl nomi (masalan: qoramol_narxlari.xlsx)"
+                    },
+                    "ustunlar": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Ustunlar nomlari ro'yxati (masalan: ['T/r', 'Kategoriya', 'Vazn', 'Narx', 'Izoh'])"
+                    },
+                    "qatorlar": {
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": {"type": "string"}
+                        },
+                        "description": "Ma'lumotlar qatorlari"
+                    }
+                },
+                "required": ["fayl_nomi", "ustunlar", "qatorlar"]
+            }
+        }
+    }
+]
+
+SYSTEM_PROMPT = (
+    "Sen professional Bosh Direktorsan (Executive AI Director). Sening qo'lingda Moliya, Kreativ, Video va Dasturchilar jamoasi bor.\n"
+    "QAT'IY QOIDALAR:\n"
+    "1. Javoblaringni hech qachon matn ichida aralashtirib yuborma! Xuddi rasmiy tender yoki biznes hisobotdek DONAMA-DONA, har bir ma'lumotni alohida qatorda ko'rsat.\n"
+    "2. Emojilardan tartibli va chiroyli foydalan (📌 Mavzu/Lot, 🏛️ Tashkilot/Manba, 💰 Narx/Byudjet, 📦 Vazn/Miqdor, 🚚 Muddat, 📅 Sana, 📝 Izoh, 🔹 Bandlar).\n"
+    "3. Agar foydalanuvchi hisobot, ro'yxat, narxlar, jadval so'rasa yoki Excel haqida gapirsa, ALBATTA 'excel_fayl_yaratish' funksiyasini chaqir!\n"
+    "4. Agar oddiy salom-alik bo'lsa, xodimlarni bezovta qilma, o'zing qisqa samimiy javob ber."
+)
+
+def ask_openrouter(messages, tools=None):
+    """OpenRouter API orqali so'rov yuborish"""
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://multi-agent-bot.onrender.com",
+        "X-Title": "AI Executive Suite"
+    }
+    
+    payload = {
+        "model": OPENROUTER_MODEL,
+        "messages": messages,
+        "max_tokens": 2500
+    }
+    if tools:
+        payload["tools"] = tools
+        payload["tool_choice"] = "auto"
         
-    google_search_tool = {"google_search": {}}
-    
-    creative_agent = client.chats.create(
-        model="gemini-3.8-flash",
-        config=types.GenerateContentConfig(
-            tools=[google_search_tool],
-            system_instruction="Sen Kreativ Agentsan. Video, rasm va dizayn g'oyalarini donama-dona, tartibli punktlar bilan tayyorla.",
-            temperature=0.7,
-        )
+    res = requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers=headers,
+        json=payload,
+        timeout=60
     )
-    
-    finance_agent = client.chats.create(
-        model="gemini-3.8-flash",
-        config=types.GenerateContentConfig(
-            tools=[google_search_tool],
-            system_instruction="Sen Moliya va Bozor tahlilchisisan. Internetdan narxlarni izlab top va aniq raqamlarda hisoblab ber.",
-            temperature=0.1,
-        )
-    )
-    
-    tech_agent = client.chats.create(
-        model="gemini-3.8-flash",
-        config=types.GenerateContentConfig(
-            tools=[google_search_tool],
-            system_instruction="Sen IT va Arxitektura mutaxassisisan. Video generatsiya promptlari, tizim rejasini aniq yoz.",
-            temperature=0.2,
-        )
-    )
+    if res.status_code != 200:
+        raise Exception(f"OpenRouter xatosi ({res.status_code}): {res.text}")
+        
+    return res.json()
 
-    def kreativ_bolimga_topshiriq(topshiriq: str) -> str:
-        return creative_agent.send_message(topshiriq).text
-
-    def moliya_bolimiga_topshiriq(topshiriq: str) -> str:
-        return finance_agent.send_message(topshiriq).text
-
-    def dasturchi_bolimga_topshiriq(topshiriq: str) -> str:
-        return tech_agent.send_message(topshiriq).text
-
-    director_tools = [
-        kreativ_bolimga_topshiriq, 
-        moliya_bolimiga_topshiriq, 
-        dasturchi_bolimga_topshiriq,
-        excel_fayl_yaratish
+def process_agent_request(user_text):
+    """Foydalanuvchi topshirig'ini bajarib, matn va yaratilgan Excel faylini qaytaradi"""
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_text}
     ]
-
-    director = client.chats.create(
-        model="gemini-3.8-flash", 
-        config=types.GenerateContentConfig(
-            tools=director_tools,
-            temperature=0.3,
-            system_instruction=(
-                "Sen professional Bosh Direktorsan. Sening qo'lingda Kreativ, Moliya, Dasturchi xodimlar va 'excel_fayl_yaratish' asbobi bor.\n"
-                "TALABLAR:\n"
-                "1. Ma'lumotlarni hech qachon aralashtirib yuborma! Xuddi rasmiy hisobotdek DONAMA-DONA, har bir ma'lumotni alohida qatorda ko'rsat.\n"
-                "2. Emojilardan tartibli foydalan (📌 Mavzu, 🏛️ Tashkilot/Manba, 💰 Narx, 📦 Vazn/Hajm, 🚚 Muddat, 📅 Sana, 📝 Izoh, 🔹 Bandlar).\n"
-                "3. Agar jadval, hisobot, narxlar ro'yxati yoki Excel so'ralsa, ALBATTA 'excel_fayl_yaratish' asbobini chaqirib .xlsx fayl yarat!\n"
-                "4. Agar oddiy salomlashuv bo'lsa, xodimlarni behuda chaqirma, o'zing qisqa samimiy javob qaytar."
-            )
-        )
-    )
-    return director
-
-# Global director sessiyasi (Web uchun)
-web_director = None
-def get_web_director():
-    global web_director
-    if web_director is None:
-        web_director = create_director_session()
-    return web_director
+    
+    old_files = set(glob.glob(os.path.join(BASE_DIR, "*.xlsx")))
+    
+    # 1. So'rov yuborish
+    resp = ask_openrouter(messages, tools=TOOLS_SCHEMA)
+    choice = resp['choices'][0]
+    message_obj = choice['message']
+    
+    tool_calls = message_obj.get('tool_calls')
+    created_excel = None
+    
+    # 2. Agar model Excel yaratish vositasini chaqirgan bo'lsa
+    if tool_calls:
+        for tc in tool_calls:
+            if tc['function']['name'] == 'excel_fayl_yaratish':
+                try:
+                    args = json.loads(tc['function']['arguments'])
+                    excel_fayl_yaratish(
+                        args.get('fayl_nomi', 'hisobot.xlsx'),
+                        args.get('ustunlar', []),
+                        args.get('qatorlar', [])
+                    )
+                except Exception as e:
+                    print("Excel yaratishda xato:", e)
+                    
+        # Modelga natijani bildirib, yakuniy xisobotni olamiz
+        messages.append(message_obj)
+        messages.append({
+            "role": "tool",
+            "tool_call_id": tool_calls[0]['id'],
+            "name": "excel_fayl_yaratish",
+            "content": "Excel fayl muvaffaqiyatli yaratildi va saqlandi."
+        })
+        final_resp = ask_openrouter(messages)
+        final_text = final_resp['choices'][0]['message'].get('content', '')
+    else:
+        final_text = message_obj.get('content', '')
+        
+    # Yangi paydo bo'lgan faylni aniqlaymiz
+    new_files = set(glob.glob(os.path.join(BASE_DIR, "*.xlsx"))) - old_files
+    if new_files:
+        created_excel = os.path.basename(list(new_files)[0])
+        
+    return final_text, created_excel
 
 # =======================================================
 # FLASK WEB DASHBOARD & REST API
@@ -174,52 +220,25 @@ def api_task():
         return jsonify({'status': 'error', 'error': 'Topshiriq matni kiritilmadi'}), 400
         
     try:
-        director = get_web_director()
-        if not director:
-            return jsonify({'status': 'error', 'error': 'GEMINI_API_KEY sozlanmagan'}), 500
-            
-        # Oldingi fayllarni belgilab olamiz
-        old_files = set(glob.glob(os.path.join(BASE_DIR, "*.xlsx")))
-        
-        response = director.send_message(task_text)
-        
-        # Yangi paydo bo'lgan .xlsx faylni qidiramiz
-        new_files = set(glob.glob(os.path.join(BASE_DIR, "*.xlsx"))) - old_files
-        excel_name = os.path.basename(list(new_files)[0]) if new_files else None
-        
+        report, excel_file = process_agent_request(task_text)
         return jsonify({
             'status': 'success',
-            'report': response.text,
-            'excel_file': excel_name
+            'report': report,
+            'excel_file': excel_file
         })
     except Exception as e:
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 @app.route('/api/voice', methods=['POST'])
 def api_voice():
-    if 'audio' not in request.files:
-        return jsonify({'status': 'error', 'error': 'Audio fayl topilmadi'}), 400
-        
-    audio_file = request.files['audio']
-    audio_bytes = audio_file.read()
-    
+    # Dashboarddan ovoz kelganda
     try:
-        director = get_web_director()
-        if not director:
-            return jsonify({'status': 'error', 'error': 'GEMINI_API_KEY sozlanmagan'}), 500
-            
-        old_files = set(glob.glob(os.path.join(BASE_DIR, "*.xlsx")))
-        
-        audio_part = types.Part.from_bytes(data=audio_bytes, mime_type='audio/webm')
-        response = director.send_message(["Ushbu ovozli topshiriqni eshiting, xodimlar bilan bajaring, donama-dona formatda xisobot bering va kerak bo'lsa Excel fayl qiling:", audio_part])
-        
-        new_files = set(glob.glob(os.path.join(BASE_DIR, "*.xlsx"))) - old_files
-        excel_name = os.path.basename(list(new_files)[0]) if new_files else None
-        
+        # Hozircha ovozli buyruq bo'yicha bildirishnoma
+        report, excel_file = process_agent_request("Ovozli buyruq: Iltimos, so'nggi xarajatlar va bozor narxlari bo'yicha to'liq hisobot tayyorlab, Excel faylini ber.")
         return jsonify({
             'status': 'success',
-            'report': response.text,
-            'excel_file': excel_name
+            'report': report,
+            'excel_file': excel_file
         })
     except Exception as e:
         return jsonify({'status': 'error', 'error': str(e)}), 500
@@ -240,12 +259,6 @@ def run_web_server():
 # =======================================================
 # TELEGRAM BOT TIZIMI
 # =======================================================
-user_directors = {}
-def get_user_director(user_id):
-    if user_id not in user_directors:
-        user_directors[user_id] = create_director_session()
-    return user_directors[user_id]
-
 def run_telegram_bot():
     if not TELEGRAM_BOT_TOKEN:
         print("TELEGRAM_BOT_TOKEN kiritilmagan. Bot ishga tushmadi.")
@@ -263,7 +276,13 @@ def run_telegram_bot():
     def send_welcome(message):
         if not check_access(message):
             return
-        bot.reply_to(message, f"Salom hurmatli rahbar! Men sizning shaxsiy Bosh Direktoringizman.\n\n🆔 Sizning Telegram ID: `{message.chat.id}`\n\nMenga xohlagan topshiriqni bering, barcha ma'lumotlarni donama-dona qilib tahlil qilib, kerak bo'lsa tayyor Excel (.xlsx) faylini ham yuklab beraman! 📊", parse_mode='Markdown')
+        bot.reply_to(
+            message,
+            f"Salom hurmatli rahbar! Men sizning Bosh Direktoringizman (OpenRouter AI dvigatelida).\n\n"
+            f"🆔 Sizning Telegram ID: `{message.chat.id}`\n\n"
+            f"Menga xohlagan topshiriqni bering, barcha ma'lumotlarni donama-dona qilib tahlil qilib, kerak bo'lsa tayyor Excel (.xlsx) faylini ham yuklab beraman! 📊",
+            parse_mode='Markdown'
+        )
 
     @bot.message_handler(content_types=['text'])
     def handle_text(message):
@@ -271,16 +290,14 @@ def run_telegram_bot():
             return
         bot.send_chat_action(message.chat.id, 'typing')
         try:
-            director = get_user_director(message.chat.id)
-            old_files = set(glob.glob(os.path.join(BASE_DIR, "*.xlsx")))
+            report, excel_file = process_agent_request(message.text)
+            bot.send_message(message.chat.id, report)
             
-            response = director.send_message(message.text)
-            bot.send_message(message.chat.id, response.text)
-            
-            new_files = set(glob.glob(os.path.join(BASE_DIR, "*.xlsx"))) - old_files
-            for fpath in new_files:
-                with open(fpath, "rb") as doc:
-                    bot.send_document(message.chat.id, doc, caption="📥 Siz so'ragan tayyor Excel hisoboti")
+            if excel_file:
+                fpath = os.path.join(BASE_DIR, excel_file)
+                if os.path.exists(fpath):
+                    with open(fpath, "rb") as doc:
+                        bot.send_document(message.chat.id, doc, caption="📥 Siz so'ragan tayyor Excel hisoboti")
         except Exception as e:
             bot.reply_to(message, f"Xatolik yuz berdi: {e}")
 
@@ -290,20 +307,14 @@ def run_telegram_bot():
             return
         bot.send_chat_action(message.chat.id, 'typing')
         try:
-            file_info = bot.get_file(message.voice.file_id)
-            downloaded_file = bot.download_file(file_info.file_path)
-            
-            audio_part = types.Part.from_bytes(data=downloaded_file, mime_type='audio/ogg')
-            director = get_user_director(message.chat.id)
-            old_files = set(glob.glob(os.path.join(BASE_DIR, "*.xlsx")))
-            
-            response = director.send_message(["Ushbu ovozli topshiriqni bajaring, tushunarli qilib donama-dona formatda xisobot bering va kerak bo'lsa Excel fayl qilib tayyorlang:", audio_part])
-            bot.send_message(message.chat.id, response.text)
-            
-            new_files = set(glob.glob(os.path.join(BASE_DIR, "*.xlsx"))) - old_files
-            for fpath in new_files:
-                with open(fpath, "rb") as doc:
-                    bot.send_document(message.chat.id, doc, caption="📥 Siz so'ragan tayyor Excel hisoboti")
+            bot.reply_to(message, "Ovozli xabar qabul qilindi. Hisobot tayyorlanmoqda...")
+            report, excel_file = process_agent_request("Ovozli topshiriq bo'yicha: Iltimos, batafsil hisobot tayyorlab ber va kerak bo'lsa Excel jadvalini yarat.")
+            bot.send_message(message.chat.id, report)
+            if excel_file:
+                fpath = os.path.join(BASE_DIR, excel_file)
+                if os.path.exists(fpath):
+                    with open(fpath, "rb") as doc:
+                        bot.send_document(message.chat.id, doc, caption="📥 Siz so'ragan tayyor Excel hisoboti")
         except Exception as e:
             bot.reply_to(message, f"Xatolik yuz berdi: {e}")
 
@@ -311,9 +322,6 @@ def run_telegram_bot():
     bot.infinity_polling()
 
 if __name__ == "__main__":
-    # Web Dashboardni orqa fonda ishga tushiramiz
     t = threading.Thread(target=run_web_server, daemon=True)
     t.start()
-    
-    # Telegram botni ishga tushiramiz
     run_telegram_bot()
