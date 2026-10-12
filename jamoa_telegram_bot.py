@@ -456,24 +456,87 @@ def run_telegram_bot():
         except Exception as e:
             bot.reply_to(message, f"Xatolik yuz berdi: {e}")
 
+    media_groups_cache = {}
+    media_groups_lock = threading.Lock()
+
+    def process_media_group(mg_id):
+        with media_groups_lock:
+            data = media_groups_cache.pop(mg_id, None)
+        if not data:
+            return
+            
+        chat_id = data['chat_id']
+        photos = data['photos']
+        caption = data['caption']
+        bot.send_chat_action(chat_id, 'typing')
+        
+        low_c = caption.lower()
+        if any(w in low_c for w in ['video', 'rolik', 'klip', 'ssilka', 'silka', 'harakatlantir']):
+            target_agent = 'video'
+            prompt_text = caption or "Ushbu rasmlar asosida video rolik yaratib ber."
+        elif any(w in low_c for w in ['excel', 'jadval', 'narx', 'narxlari', 'smeta', 'hisob', 'hisobot']):
+            target_agent = 'finance'
+            prompt_text = caption or "Ushbu rasmlar bo'yicha narxlar va hisob-kitob qilib Excel jadval tayyorla."
+        else:
+            target_agent = 'director'
+            prompt_text = caption or f"Ushbu biriktirilgan {len(photos)} ta rasmni tahlil qilib to'liq ma'lumot bering."
+
+        try:
+            report, excel_file, video_file = process_agent_request(
+                prompt_text,
+                target_agent=target_agent,
+                uploaded_images=photos
+            )
+            bot.send_message(chat_id, report)
+            if excel_file:
+                fpath = os.path.join(BASE_DIR, excel_file)
+                if os.path.exists(fpath) and os.path.getsize(fpath) > 500:
+                    with open(fpath, "rb") as doc:
+                        bot.send_document(chat_id, doc, caption="📊 Siz so'ragan tayyor Excel hisoboti")
+            elif video_file:
+                vpath = os.path.join(BASE_DIR, video_file)
+                if os.path.exists(vpath) and os.path.getsize(vpath) > 1000:
+                    with open(vpath, "rb") as vid:
+                        bot.send_video(chat_id, vid, caption="🎬 Rasmlar asosida tayyorlangan video rolik (.mp4)")
+        except Exception as e:
+            bot.send_message(chat_id, f"Rasmlarni tahlil qilishda xatolik: {e}")
+
     @bot.message_handler(content_types=['photo'])
     def handle_photo(message):
         if not check_access(message):
             return
-        bot.send_chat_action(message.chat.id, 'typing')
         try:
             file_info = bot.get_file(message.photo[-1].file_id)
             downloaded = bot.download_file(file_info.file_path)
             
-            photo_name = f"tg_photo_{message.photo[-1].file_id[:8]}.jpg"
+            photo_name = f"tg_photo_{message.photo[-1].file_id[:8]}_{os.urandom(2).hex()}.jpg"
             photo_path = os.path.join(UPLOADS_DIR, photo_name)
             with open(photo_path, 'wb') as new_f:
                 new_f.write(downloaded)
                 
+            mg_id = getattr(message, 'media_group_id', None)
+            if mg_id:
+                with media_groups_lock:
+                    if mg_id not in media_groups_cache:
+                        media_groups_cache[mg_id] = {
+                            'chat_id': message.chat.id,
+                            'photos': [photo_path],
+                            'caption': message.caption or '',
+                            'timer': threading.Timer(1.5, process_media_group, args=[mg_id])
+                        }
+                        media_groups_cache[mg_id]['timer'].start()
+                    else:
+                        media_groups_cache[mg_id]['photos'].append(photo_path)
+                        if message.caption:
+                            media_groups_cache[mg_id]['caption'] = message.caption
+                        media_groups_cache[mg_id]['timer'].cancel()
+                        media_groups_cache[mg_id]['timer'] = threading.Timer(1.5, process_media_group, args=[mg_id])
+                        media_groups_cache[mg_id]['timer'].start()
+                return
+
+            bot.send_chat_action(message.chat.id, 'typing')
             caption = message.caption or ""
             low_c = caption.lower()
-            
-            # Foydalanuvchi nima so'raganini uning yozuvidan aniqlaymiz:
             if any(w in low_c for w in ['video', 'rolik', 'klip', 'ssilka', 'silka', 'harakatlantir']):
                 target_agent = 'video'
                 prompt_text = caption or "Ushbu rasm asosida video rolik yaratib ber."
@@ -490,8 +553,6 @@ def run_telegram_bot():
                 uploaded_images=[photo_path]
             )
             bot.send_message(message.chat.id, report)
-            
-            # FAQAT SO'RALGAN FAYL YUBORILADI:
             if excel_file:
                 fpath = os.path.join(BASE_DIR, excel_file)
                 if os.path.exists(fpath) and os.path.getsize(fpath) > 500:
@@ -504,6 +565,40 @@ def run_telegram_bot():
                         bot.send_video(message.chat.id, vid, caption="🎬 Rasm asosida tayyorlangan video rolik (.mp4)")
         except Exception as e:
             bot.reply_to(message, f"Rasm tahlilida xatolik: {e}")
+
+    @bot.message_handler(content_types=['video'])
+    def handle_video(message):
+        if not check_access(message):
+            return
+        bot.send_chat_action(message.chat.id, 'typing')
+        try:
+            file_info = bot.get_file(message.video.file_id)
+            downloaded = bot.download_file(file_info.file_path)
+            
+            vid_name = f"tg_vid_{message.video.file_id[:8]}.mp4"
+            vid_path = os.path.join(UPLOADS_DIR, vid_name)
+            with open(vid_path, 'wb') as new_f:
+                new_f.write(downloaded)
+                
+            caption = message.caption or "Ushbu videoni tahlil qilib to'liq ma'lumot bering."
+            report, excel_file, video_file = process_agent_request(
+                caption,
+                target_agent='video',
+                uploaded_images=[vid_path]
+            )
+            bot.send_message(message.chat.id, report)
+            if excel_file:
+                fpath = os.path.join(BASE_DIR, excel_file)
+                if os.path.exists(fpath) and os.path.getsize(fpath) > 500:
+                    with open(fpath, "rb") as doc:
+                        bot.send_document(message.chat.id, doc, caption="📊 Hisobot (.xlsx)")
+            elif video_file:
+                vpath = os.path.join(BASE_DIR, video_file)
+                if os.path.exists(vpath) and os.path.getsize(vpath) > 1000:
+                    with open(vpath, "rb") as vid:
+                        bot.send_video(message.chat.id, vid, caption="🎬 Tayyor video rolik (.mp4)")
+        except Exception as e:
+            bot.reply_to(message, f"Video tahlilida xatolik: {e}")
 
     @bot.message_handler(content_types=['voice'])
     def handle_voice(message):
