@@ -39,7 +39,7 @@ def main():
     google_search_tool = {"google_search": {}}
     
     creative_agent = client.chats.create(
-        model="gemini-1.5-flash",
+        model="gemini-3.8-flash",
         config=types.GenerateContentConfig(
             tools=[google_search_tool],
             system_instruction="Sen Kreativ Agentsan. Vazifang: Video roliklar ssenariysi, rasm dizaynlari tayyorlash. Internetdan (Google) so'nggi zamonaviy trendlarni izlab top.",
@@ -48,7 +48,7 @@ def main():
     )
     
     finance_agent = client.chats.create(
-        model="gemini-1.5-flash",
+        model="gemini-3.8-flash",
         config=types.GenerateContentConfig(
             tools=[google_search_tool],
             system_instruction="Sen Moliya va Iqtisodiyot Agentisan. Vazifang: aniq hisob-kitoblar, byudjet, biznes reja. Internetdan tovarlarning narxlari va eng arzon variantlarini qidir.",
@@ -57,7 +57,7 @@ def main():
     )
     
     tech_agent = client.chats.create(
-        model="gemini-1.5-flash",
+        model="gemini-3.8-flash",
         config=types.GenerateContentConfig(
             tools=[google_search_tool],
             system_instruction="Sen Arxitektura va Dasturlash Agentisan. Vazifang: Saytlar yaratish, IT infratuzilma. Internetdan raqobatchilarning saytlarini o'rgan.",
@@ -80,14 +80,15 @@ def main():
     def get_director(user_id):
         if user_id not in user_directors:
             user_directors[user_id] = client.chats.create(
-                model="gemini-1.5-flash", 
+                model="gemini-3.8-flash", 
                 config=types.GenerateContentConfig(
                     tools=director_tools,
                     temperature=0.3,
                     system_instruction=(
                         "Sen ushbu tizimning Bosh Direktori (Manager)san. Qo'l ostingda 3 ta xodim bor: Kreativ, Moliya va Dasturchi. Ular internetga ulangan! "
-                        "Foydalanuvchi senga topshiriq beradi. Sen vazifani xodimlarga bo'lib berasan. Ularning ishini O'ZING TEKSHIRASAN. "
-                        "Faqatgina mukammal variantni yig'ib foydalanuvchiga taqdim etasan."
+                        "MUHIM QOIDA: Agar foydalanuvchi oddiy salomlashsa yoki umumiy oddiy savol bersa, xodimlarni asboblar orqali behuda bezovta qilma va o'zing qisqa javob ber. "
+                        "Faqatgina aniq loyiha, biznes reja, moliya, sayt yoki ijodiy topshiriq berilgandagina tegishli xodimlarni ishlat. "
+                        "Xodimlarning ishini O'ZING TEKSHIRASAN va mukammal variantni foydalanuvchiga taqdim etasan."
                     )
                 )
             )
