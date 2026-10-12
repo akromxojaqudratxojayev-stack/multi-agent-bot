@@ -1,20 +1,24 @@
 import os
 import threading
+import glob
 try:
     import telebot
     from flask import Flask
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
     from google import genai
     from google.genai import types
 except ImportError:
-    print("Xatolik: Kutubxonalar yo'q. Terminalda yozing: pip install google-genai pyTelegramBotAPI flask")
+    print("Xatolik: Kutubxonalar yo'q. Terminalda yozing: pip install google-genai pyTelegramBotAPI flask openpyxl")
     exit(1)
 
-# XAVFSIZLIK: Kalitlarni ochiq yozmaymiz, serverning o'zidan (Environment) o'qiymiz!
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "SIZNING_TELEGRAM_TOKENINGIZ")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "SIZNING_GEMINI_KALITINGIZ")
+# XAVFSIZLIK: Kalitlarni serverning o'zidan (Environment) olamiz
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "8765454146:AAHyUPx9s0HK7-CfLiZLx_jy5tqiQNp9DxY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 # =======================================================
-# UPTIMEROBOT UCHUN WEB-SERVER (Bot uxlamasligi uchun)
+# UPTIMEROBOT UCHUN WEB-SERVER
 # =======================================================
 app = Flask(__name__)
 
@@ -27,22 +31,86 @@ def run_web_server():
     app.run(host="0.0.0.0", port=port)
 
 # =======================================================
+# HAQIQIY EXCEL (.XLSX) YARATISH ASBOBI
+# =======================================================
+def excel_fayl_yaratish(fayl_nomi: str, ustunlar: list[str], qatorlar: list[list[str]]) -> str:
+    """
+    Haqiqiy professional Excel (.xlsx) fayl yaratadi. 
+    Har bir ma'lumot alohida katakda (A, B, C, D...), chiroyli rang va chegaralar bilan bo'ladi.
+    """
+    if not fayl_nomi.endswith('.xlsx'):
+        fayl_nomi = fayl_nomi.replace('.csv', '') + '.xlsx'
+        
+    print(f"📊 [Excel Asbob]: {fayl_nomi} yaratilmoqda...")
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Hisobot"
+    
+    # Chiroyli sarlavha dizayni (Ko'k rang, oq qalin yozuv)
+    header_fill = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    data_font = Font(name="Calibri", size=11)
+    
+    thin_border = Border(
+        left=Side(style='thin', color='D9D9D9'),
+        right=Side(style='thin', color='D9D9D9'),
+        top=Side(style='thin', color='D9D9D9'),
+        bottom=Side(style='thin', color='D9D9D9')
+    )
+    
+    # 1. Ustunlarni yozish
+    ws.append(ustunlar)
+    for col_num in range(1, len(ustunlar) + 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = thin_border
+        
+    # 2. Qatorlarni yozish
+    for row_idx, row_data in enumerate(qatorlar, start=2):
+        ws.append(row_data)
+        for col_num in range(1, len(row_data) + 1):
+            cell = ws.cell(row=row_idx, column=col_num)
+            cell.font = data_font
+            cell.border = thin_border
+            # Raqamlar bo'lsa o'rtaga yoki o'ngga
+            if str(cell.value).replace(' ', '').replace(',', '').replace('.', '').isdigit():
+                cell.alignment = Alignment(horizontal="right", vertical="center")
+            else:
+                cell.alignment = Alignment(horizontal="left", vertical="center")
+                
+    # 3. Ustun kengliklarini avtomatik to'g'irlash (hech narsa qisilib qolmasligi uchun)
+    for col in ws.columns:
+        max_length = 0
+        col_letter = get_column_letter(col[0].column)
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        ws.column_dimensions[col_letter].width = max(max_length + 4, 12)
+        
+    ws.row_dimensions[1].height = 26
+    wb.save(fayl_nomi)
+    return fayl_nomi
+
+# =======================================================
 # MULTI-AGENT BOT KODI
 # =======================================================
 def main():
-    if TELEGRAM_BOT_TOKEN == "SIZNING_TELEGRAM_TOKENINGIZ" or GEMINI_API_KEY == "SIZNING_GEMINI_KALITINGIZ":
-        print("DIQQAT: Environment variables (API kalitlar) kiritilmagan!")
-        
     bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
     client = genai.Client(api_key=GEMINI_API_KEY)
     
     google_search_tool = {"google_search": {}}
     
+    # 1. XODIMLAR
     creative_agent = client.chats.create(
         model="gemini-3.8-flash",
         config=types.GenerateContentConfig(
             tools=[google_search_tool],
-            system_instruction="Sen Kreativ Agentsan. Vazifang: Video roliklar ssenariysi, rasm dizaynlari tayyorlash. Internetdan (Google) so'nggi zamonaviy trendlarni izlab top.",
+            system_instruction="Sen Kreativ Agentsan. Video, rasm va dizayn g'oyalarini donama-dona, tartibli punktlar bilan tayyorla.",
             temperature=0.7,
         )
     )
@@ -51,7 +119,7 @@ def main():
         model="gemini-3.8-flash",
         config=types.GenerateContentConfig(
             tools=[google_search_tool],
-            system_instruction="Sen Moliya va Iqtisodiyot Agentisan. Vazifang: aniq hisob-kitoblar, byudjet, biznes reja. Internetdan tovarlarning narxlari va eng arzon variantlarini qidir.",
+            system_instruction="Sen Moliya va Bozor tahlilchisisan. Internetdan aniq narxlarni, jadval ma'lumotlarini izlab top va aniq raqamlarda hisoblab ber.",
             temperature=0.1,
         )
     )
@@ -60,7 +128,7 @@ def main():
         model="gemini-3.8-flash",
         config=types.GenerateContentConfig(
             tools=[google_search_tool],
-            system_instruction="Sen Arxitektura va Dasturlash Agentisan. Vazifang: Saytlar yaratish, IT infratuzilma. Internetdan raqobatchilarning saytlarini o'rgan.",
+            system_instruction="Sen IT va Arxitektura mutaxassisisan. Tizim rejasini aniq bandlar bilan yoz.",
             temperature=0.2,
         )
     )
@@ -74,7 +142,12 @@ def main():
     def dasturchi_bolimga_topshiriq(topshiriq: str) -> str:
         return tech_agent.send_message(topshiriq).text
 
-    director_tools = [kreativ_bolimga_topshiriq, moliya_bolimiga_topshiriq, dasturchi_bolimga_topshiriq]
+    director_tools = [
+        kreativ_bolimga_topshiriq, 
+        moliya_bolimiga_topshiriq, 
+        dasturchi_bolimga_topshiriq,
+        excel_fayl_yaratish
+    ]
     user_directors = {}
 
     def get_director(user_id):
@@ -85,18 +158,31 @@ def main():
                     tools=director_tools,
                     temperature=0.3,
                     system_instruction=(
-                        "Sen ushbu tizimning Bosh Direktori (Manager)san. Qo'l ostingda 3 ta xodim bor: Kreativ, Moliya va Dasturchi. Ular internetga ulangan! "
-                        "MUHIM QOIDA: Agar foydalanuvchi oddiy salomlashsa yoki umumiy oddiy savol bersa, xodimlarni asboblar orqali behuda bezovta qilma va o'zing qisqa javob ber. "
-                        "Faqatgina aniq loyiha, biznes reja, moliya, sayt yoki ijodiy topshiriq berilgandagina tegishli xodimlarni ishlat. "
-                        "Xodimlarning ishini O'ZING TEKSHIRASAN va mukammal variantni foydalanuvchiga taqdim etasan."
+                        "Sen professional Bosh Direktorsan. Sening qo'lingda Kreativ, Moliya, Dasturchi xodimlar va 'excel_fayl_yaratish' asbobi bor.\n"
+                        "JAVOBINGNI FORMATLASH BO'YICHA ENG MUHIM TALABLAR:\n"
+                        "1. Ma'lumotlarni hech qachon matn ichida aralashtirib yuborma! Xuddi rasmiy tender yoki hisobotdek DONAMA-DONA, har bir ma'lumotni alohida qatorda ko'rsat.\n"
+                        "2. Emojilardan aniq va chiroyli foydalan (masalan: 📌 Lot/Mavzu, 🏛️ Tashkilot/Manba, 💰 Narx/Summa, 📦 Hajm/Vazn, 🚚 Muddat, 📅 Sana, 📝 Izoh, 🔹 Bandlar).\n"
+                        "3. Agar foydalanuvchi hisobot, narxlar ro'yxati, reja yoki jadval so'rasa yoki Excel haqida gapirsa, ALBATTA 'excel_fayl_yaratish' asbobini chaqirib, fayl yarat!\n"
+                        "4. Foydalanuvchiga matnli hisobot berish bilan birga, 'Siz uchun to'liq Excel fayl tayyorlandi va pastda yuklandi' deb ayt."
                     )
                 )
             )
         return user_directors[user_id]
-        
+
+    def send_created_files(chat_id):
+        """Yaratilgan barcha .xlsx fayllarni Telegramga yuklab, so'ng o'chiradi."""
+        files = glob.glob("*.xlsx")
+        for fpath in files:
+            try:
+                with open(fpath, "rb") as doc:
+                    bot.send_document(chat_id, doc, caption="📥 Siz so'ragan tayyor Excel hisoboti")
+                os.remove(fpath)
+            except Exception as e:
+                print(f"Fayl yuborishda xatolik: {e}")
+
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
-        bot.reply_to(message, "Hurmatli rahbar! Men sizning Bosh Direktoringizman. Menga xohlagan ishingizni yozma yoki ovozli qilib yuboring.")
+        bot.reply_to(message, "Salom hurmatli rahbar! Men sizning Bosh Direktoringizman.\nMenga xohlagan topshiriqni bering, barcha ma'lumotlarni donama-dona qilib tahlil qilib, kerak bo'lsa tayyor Excel (.xlsx) faylini ham yuklab beraman! 📊")
 
     @bot.message_handler(content_types=['text'])
     def handle_text(message):
@@ -104,7 +190,9 @@ def main():
         try:
             director = get_director(message.chat.id)
             response = director.send_message(message.text)
-            bot.send_message(message.chat.id, f"✅ **DIREKTOR XISOBOTI:**\n\n{response.text}", parse_mode='Markdown')
+            bot.send_message(message.chat.id, response.text)
+            # Agar Excel yaratilgan bo'lsa, faylni yuboramiz
+            send_created_files(message.chat.id)
         except Exception as e:
             bot.reply_to(message, f"Xatolik yuz berdi: {e}")
 
@@ -118,19 +206,17 @@ def main():
             audio_part = types.Part.from_bytes(data=downloaded_file, mime_type='audio/ogg')
             
             director = get_director(message.chat.id)
-            response = director.send_message(["Ushbu ovozli topshiriqni eshiting va xodimlaringiz orqali mukammal qilib bajaring:", audio_part])
-            bot.send_message(message.chat.id, f"✅ **DIREKTOR XISOBOTI:**\n\n{response.text}", parse_mode='Markdown')
+            response = director.send_message(["Ushbu ovozli topshiriqni bajaring, tushunarli qilib donama-dona formatda xisobot bering va kerak bo'lsa Excel fayl qilib tayyorlang:", audio_part])
+            bot.send_message(message.chat.id, response.text)
+            # Agar Excel yaratilgan bo'lsa, faylni yuboramiz
+            send_created_files(message.chat.id)
         except Exception as e:
             bot.reply_to(message, f"Xatolik yuz berdi: {e}")
-            
-    # Telegram botni ishga tushirish
+
     print("Telegram bot ishga tushdi...")
     bot.infinity_polling()
 
 if __name__ == "__main__":
-    # Web-serverni orqa fonda alohida ishga tushiramiz (UptimeRobot uchun)
     t = threading.Thread(target=run_web_server)
     t.start()
-    
-    # Asosiy botni ishga tushiramiz
     main()
