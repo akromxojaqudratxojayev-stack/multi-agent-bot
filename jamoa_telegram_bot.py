@@ -217,7 +217,7 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
         if any(d in candidate_url.lower() for d in ['instagram.com', 'tiktok.com', 'youtube.com', 'youtu.be']):
             found_video_url = candidate_url
             try:
-                info = extract_video_from_url(found_video_url)
+                info = extract_video_from_url(found_video_url, download=True)
                 if info.get('status') == 'success':
                     user_text += (
                         f"\n\n[SSILKA BO'YICHA ANIQ REAL MA'LUMOT]:\n"
