@@ -82,25 +82,30 @@ def fit_and_crop_rgb(img: Image.Image, target_w: int, target_h: int) -> Image.Im
     return cropped.resize((target_w, target_h), Image.Resampling.BILINEAR)
 
 def extract_keyframes_base64(video_path: str, max_frames: int = 2) -> list[str]:
-    """Videodan asosiy kadrlarni ajratib, AI ko'rishi uchun base64 formatda qaytaradi."""
+    """Videodan 2 ta kadrni minimal RAM sarflagan holda ajratib, base64 formatda qaytaradi."""
     if not video_path or not os.path.exists(video_path):
         return []
     try:
         import imageio.v3 as iio
         from io import BytesIO
         import base64
-        frames = list(iio.imiter(video_path))
-        if not frames:
-            return []
-        indices = [len(frames) // 4, len(frames) * 3 // 4] if len(frames) > 4 else [0]
         result = []
-        for idx in indices[:max_frames]:
-            img = Image.fromarray(frames[idx])
-            img.thumbnail((512, 512))
-            buf = BytesIO()
-            img.save(buf, format="JPEG", quality=75)
-            b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
-            result.append(b64)
+        target_indices = (8, 38)
+        for idx, frame in enumerate(iio.imiter(video_path)):
+            if idx in target_indices:
+                img = Image.fromarray(frame)
+                img.thumbnail((384, 384))
+                buf = BytesIO()
+                img.save(buf, format="JPEG", quality=70)
+                b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+                result.append(b64)
+                del img
+                del frame
+                if len(result) >= max_frames:
+                    break
+            elif idx > 50:
+                break
+        gc.collect()
         return result
     except Exception as e:
         print(f"[Keyframe extraction xatosi]: {e}")

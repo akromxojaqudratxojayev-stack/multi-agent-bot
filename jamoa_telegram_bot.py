@@ -297,8 +297,13 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
         {"role": "user", "content": user_payload}
     ]
     
+    # Agar foydalanuvchi faqat prompt yoki ssenariy so'ragan bo'lsa, og'ir video render qilinmaydi (darhol javob beradi)
+    low_u = user_text.lower()
+    is_prompt_only = any(w in low_u for w in ['prompt', 'ssenariy', 'tavsif', 'yozib ber', 'matn']) and not any(w in low_u for w in ['video yarat', 'rolik tayyorla', 'rolik qil', 'mp4 yarat', 'video qil'])
+    tools_to_pass = None if is_prompt_only else TOOLS_SCHEMA
+    
     # So'rov yuborish
-    resp = ask_openrouter(messages, tools=TOOLS_SCHEMA)
+    resp = ask_openrouter(messages, tools=tools_to_pass)
     choice = resp['choices'][0]
     message_obj = choice['message']
     
