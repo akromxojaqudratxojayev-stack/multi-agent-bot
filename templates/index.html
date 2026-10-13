@@ -664,11 +664,20 @@
                 });
 
                 if (startData.status === 'processing' && startData.job_id) {
-                    // Poll background job every 2 seconds
+                    // Poll background job every 2 seconds with retry resilience
                     const jobId = startData.job_id;
+                    let retries = 0;
                     while (true) {
                         await new Promise(r => setTimeout(r, 2000));
-                        const jobData = await safeJsonFetch(`/api/job/${jobId}`);
+                        let jobData;
+                        try {
+                            jobData = await safeJsonFetch(`/api/job/${jobId}`);
+                            retries = 0;
+                        } catch (pollErr) {
+                            retries++;
+                            if (retries <= 4) continue;
+                            throw pollErr;
+                        }
                         if (jobData.status === 'processing') {
                             continue;
                         }
