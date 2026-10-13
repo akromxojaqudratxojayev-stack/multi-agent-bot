@@ -20,6 +20,8 @@ from video_generator import render_dynamic_video, extract_video_from_url, try_re
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "google/gemini-2.5-flash")
+if not OPENROUTER_MODEL or "llama" in OPENROUTER_MODEL.lower():
+    OPENROUTER_MODEL = "google/gemini-2.5-flash"
 REPLICATE_API_TOKEN = os.environ.get("REPLICATE_API_TOKEN", "")
 if "REPLICATE_API_TOKEN" not in os.environ and REPLICATE_API_TOKEN:
     os.environ["REPLICATE_API_TOKEN"] = REPLICATE_API_TOKEN
@@ -159,28 +161,17 @@ TOOLS_SCHEMA = [
 ]
 
 SYSTEM_PROMPT = (
-    "Sen Sardor — Professional Bosh Direktorsan (AI Executive Director). Sening qo'ling ostida 3 ta ishonchli mutaxassis xodim ishlaydi:\n"
-    "1. Javohir — Bosh Iqtisodchi & Moliya tahlilchisi (Bozor narxlari, smeta va Excel .xlsx jadvallari ustasi).\n"
-    "2. Madina — Bosh Kreativ Dizayner (Brending, matnlar, reklama va rasm promptlari ustasi).\n"
-    "3. Temur — Bosh Video Rejissyor & AI Prompt Injiniringi (Video ssilkalarni tahlil qilish, avtomobil va qahramonlarni moslab 1-GA-1 KINEMATIK SUPER-PROMPT tuzish ustasi).\n\n"
-    "ENG ASOSIY QONUNLAR:\n"
-    "1. AGAR FOYDALANUVCHI EXCEL, JADVAL, NARXLAR, SMETA YOKI HISOBOT SO'RASA:\n"
-    "   - FAQAT Javohir javob beradi va FAQAT 'excel_fayl_yaratish' funksiyasini chaqirib Excel (.xlsx) fayl yaratadi.\n"
-    "   - Video UMUMAN qilinmaydi! Hech qanday video funksiyasini chaqirma!\n"
-    "2. AGAR FOYDALANUVCHI MATN, REKLAMA POSTI, MASLAHAT YOKI TUSHUNTIRISH SO'RASA:\n"
-    "   - Hech qanday fayl yaratma! Faqat aniq, tushunarli va chiroyli matn bilan javob ber.\n"
-    "3. AGAR FOYDALANUVCHI VIDEO, ROLIK YOKI VIDEO SSILKANI O'ZGARTIRISH (MASALAN, MOSHINANI LABOGA, ODAMNI RASMDAGI INSONGA ALMASHTIRISH) SO'RASA:\n"
-    "   - Temur videoni va yuborilgan rasmlarni 1-GA-1 CHUQUR VA ANIQ TAHLIL QILADI!\n"
-    "   - O'ZBEKCHA SO'ZLASHUV IBORALARINI (masalan: 'oyog'ini osmondan qilib' = teskari/noto'g'ri qilib) so'zma-so'z tushunma! Aslo osmonda oyoq bilan yozish yoki pushti bulutlar kabi kulgili narsalarni to'qima!\n"
-    "   - Ssilkadagi videoda nima harakat bo'layotgan bo'lsa (masalan: o'rmon yo'lida avtomobilning robot-monstrga/mechga aylanishi, tishlari, panjalari, haydovchi hayrati), AYNAN O'SHA SAHNANI 1-GA-1 TO'LIQ SAQLAB QOL!\n"
-    "   - Begona neon shahar yoki futuristik sportkarlarni to'qish QAT'IYAN TAQIQLANADI!\n"
-    "   - Sahnadagi avtomobilni FAQAT foydalanuvchi suratidagi mashinaga (masalan: Oq rangli Chevrolet Labo, davlat raqami suratdagidek: 01 A 457 MB), haydovchini esa FAQAT suratdagi inson qiyofasiga almashtir!\n"
-    "   - Javob hisobotida quyidagilarni aniq beradi:\n"
-    "     a) 🎬 KINEMATIK SUPER-PROMPT: (MiniMax / HaiLuo AI, Kling AI, Luma uchun alohida inglizcha kod blokida, Hollywood darajasidagi boy detallar bilan);\n"
-    "     b) 📝 O'ZBEKCHA TUSHUNTIRISH: (Sahnada aynan nimalar bo'layotgani);\n"
-    "     c) 🌐 BEPUL VIDEO OLISH YO'RIQNOMASI: HaiLuo AI (hailuoai.video), Kling AI (klingai.com) saytlariga kirib 100% BEPUL video olish usuli;\n"
-    "     d) 'video_rolik_yaratish' asbobini chaqiradi (agar Replicate balansi bo'lsa MP4 beriladi, bo'lmasa soxta videosiz toza hisobot beriladi);\n"
-    "4. BIR VAQTDA HAM EXCEL, HAM VIDEO BERISH QAT'IYAN TAQIQLANADI! Har bir so'rovga faqat 1 ta tegishli natija berilsin.\n"
+    "Sen — nihoyatda aqlli, samimiy va professional sun'iy intellekt maslahatchisisan (Google Gemini darajasidagi yuqori intellekt).\n\n"
+    "SENING MUOMALA VA ISHLASH USLUBING:\n"
+    "1. FOYDALANUVCHINING GAPINI O'ZIGA ASLO QAYTARMA! 'Siz shuni aytdingiz', 'Siz shuni so'radingiz' deb gapni takrorlama. To'g'ridan-to'g'ri mohiyatga o't va o'zbek tilida sof, chiroyli, aqlli insondek gaplash.\n"
+    "2. ODDIY SUHBATDA HECH QANDAY FAYL CHIQARMA:\n"
+    "   - Foydalanuvchi savol bersa, maslahat so'rasa, fikr bildirar ekan — xuddi yaqin, dono do'st va maslahatchidek tushunarli, aniq va odamdek javob ber.\n"
+    "   - Aslo o'zboshimchalik bilan Excel yoki video yaratma! Foydalanuvchi so'ramagan har qanday fayl ortiqcha va taqiqlangan!\n"
+    "3. ANIQ TOPSHIRIQ VA ASBOBLAR ISHLASHI:\n"
+    "   - Agar foydalanuvchi: 'Excel qilib ber', 'jadval tuz', 'smeta tayyorla' deb SO'RAGANDAGINA 'excel_fayl_yaratish' asbobi orqali .xlsx jadval yarat.\n"
+    "   - Agar foydalanuvchi ssilka tashlab: 'prompt yozib ber', 'ssenariy tuz' desa: video va rasmlarni 1-ga-1 tahlil qilib, MiniMax (HaiLuo AI), Kling AI uchun mukammal Gollivud Super-Promptini alohida kod blokida ingliz tilida yozib ber va o'zbekcha tushuntir.\n"
+    "   - Agar foydalanuvchi: 'video rolik yaratib ber' deb SO'RAGANDAGINA 'video_rolik_yaratish' asbobini ishlat.\n"
+    "4. O'zbekcha xalqona iboralarni (masalan: 'oyog'ini osmondan qilib' = noto'g'ri/teskari qilib) insondek to'g'ri tushun, xato ma'noda kulgili narsa to'qima."
 )
 
 def ask_openrouter(messages, tools=None):
@@ -208,11 +199,23 @@ def ask_openrouter(messages, tools=None):
         timeout=60
     )
     if res.status_code != 200:
+        # Zaxira: Gemini 2.0 Flash ga o'tish
+        if OPENROUTER_MODEL != "google/gemini-2.0-flash-001":
+            print(f"[OpenRouter Ogohlantirish]: {OPENROUTER_MODEL} xato berdi ({res.status_code}). Zaxira modelga o'tilmoqda...")
+            payload["model"] = "google/gemini-2.0-flash-001"
+            res2 = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=60
+            )
+            if res2.status_code == 200:
+                return res2.json()
         raise Exception(f"OpenRouter xatosi ({res.status_code}): {res.text}")
         
     return res.json()
 
-def process_agent_request(user_text, target_agent='director', uploaded_images=None):
+def process_agent_request(user_text, target_agent='director', uploaded_images=None, chat_history=None):
     """Foydalanuvchi topshirig'ini bajarib, faqat so'ralgan natijani qaytaradi"""
     # 0. Ssilka tahlili: Agar matnda Instagram, TikTok, YouTube ssilka bo'lsa, haqiqiy ma'lumotni olamiz
     found_video_url = None
@@ -239,24 +242,68 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
             except Exception as e:
                 print("Ssilka tahlili xatosi:", e)
 
+    # 1. Matnni tahlil qilib, foydalanuvchining asl niyatini aniqlaymiz:
+    low_u = user_text.lower()
+    
+    # Excel so'rovi bormi?
+    wants_excel = any(w in low_u for w in [
+        'excel', 'jadval', 'smeta', 'hisob-kitob jadval', 'xlsx', 
+        'jadval tuz', 'jadvalga sol', 'excel qilib ber', 'excelda', 
+        'jadval shaklida', 'jadval ko\'rinishida', 'jadval korinishida',
+        'hisobot tuz'
+    ])
+    
+    # Prompt so'rovi (video ssilka yoki prompt/ssenariy so'ralganmi?):
+    has_video_link = bool(found_video_url)
+    wants_prompt = any(w in low_u for w in [
+        'prompt', 'ssenariy', 'tavsif', 'super-prompt', 'super prompt'
+    ]) or has_video_link
+    
+    # Haqiqiy video (.mp4) generatsiyasi so'ralganmi?
+    has_video_word = any(w in low_u for w in ['video', 'rolik', 'klip', 'mp4', 'animatsiya'])
+    has_create_word = any(w in low_u for w in ['yarat', 'tayyorla', 'qilib ber', 'yasab ber', 'generatsiya', 'render', 'chiqar'])
+    wants_video_render = (has_video_word and has_create_word) and not wants_prompt
+
+    # AGENT VA ASBOBNI ANIQ TANLASH:
+    if wants_excel and not wants_video_render:
+        target_agent = 'finance'
+        tools_to_pass = [TOOLS_SCHEMA[0]] # FAQAT excel_fayl_yaratish
+    elif wants_video_render and not wants_excel:
+        target_agent = 'video'
+        tools_to_pass = [TOOLS_SCHEMA[1]] # FAQAT video_rolik_yaratish
+    elif wants_prompt:
+        target_agent = 'video'
+        tools_to_pass = None # Temur Super-Prompt yozadi, lekin og'ir fayl yaratmaydi!
+    elif target_agent == 'finance':
+        tools_to_pass = [TOOLS_SCHEMA[0]]
+    elif target_agent == 'video':
+        tools_to_pass = [TOOLS_SCHEMA[1]] if wants_video_render else None
+    else:
+        # ODDIY INSONIY SUHBAT, SAVOL-JAVOB, FIKR ALMASHISH
+        # Asboblar berilmaydi -> HECH QANDAY EXCEL YOKI VIDEO CHIQARILMAYDI!
+        tools_to_pass = None
+
     if target_agent == 'finance':
         system_instruction = (
-            "Sen Javohir — Bosh Iqtisodchi & Moliya tahlilchisisan. Foydalanuvchi narxlar, hisob-kitob yoki Excel jadval so'radi. "
-            "Sening vazifang: 'excel_fayl_yaratish' funksiyasini chaqirib haqiqiy .xlsx Excel jadval yaratish! Hech qanday video qilma!"
+            "Sen Javohir — Bosh Iqtisodchi & Moliya tahlilchisisan. Foydalanuvchi hisob-kitob, smeta yoki jadval so'radi.\n"
+            "Sening vazifang: 'excel_fayl_yaratish' funksiyasini chaqirib haqiqiy chiroyli .xlsx Excel jadval yaratish! Hech qanday video qilma! "
+            "Foydalanuvchining gapini o'ziga takrorlama, samimiy va professional tushuntir."
         )
     elif target_agent == 'creative':
         system_instruction = (
-            "Sen Madina — Bosh Kreativ Dizaynersan. Foydalanuvchi reklama matni yoki kreativ g'oya so'radi. "
-            "Sening vazifang: Kuchli reklama matnlari va tavsiyalar berish. Hech qanday fayl yaratma."
+            "Sen Madina — Bosh Kreativ Dizaynersan. Foydalanuvchi reklama matni yoki kreativ g'oya so'radi.\n"
+            "Sening vazifang: Kuchli reklama matnlari va takliflar berish. Hech qanday fayl yaratma. Samimiy va qiziqarli yoz."
         )
     elif target_agent == 'video':
         system_instruction = (
-            "Sen Temur — Bosh Video Rejissyor & AI Prompt Injiniringi mutaxassisisan. Foydalanuvchi video rolik yoki video ssilkani o'zgartirishni so'radi.\n"
-            "Sening vazifang:\n"
-            "1. Ssilkadagi voqeani 1-GA-1 o'rganib, avtomobilni Laboga (nomeri 01 A 457 MB bilan), qahramonni foydalanuvchi suratidagi inson ko'rinishiga moslab, Minimax/Kling/Luma uchun inglizcha KINEMATIK SUPER-PROMPT yozish!\n"
-            "2. O'zbekcha iboralarni noto'g'ri tushunma, xayoliy neon shaharlar to'qima!\n"
-            "3. Uni nusxalash uchun kod blokida berish va bepul HaiLuo (hailuoai.video), Kling (klingai.com) saytlarida qanday qilib tekinga chiqarib olishni tushuntirish.\n"
-            "4. 'video_rolik_yaratish' asbobini chaqirish (agar Replicate balansi bo'lsa, MP4 video yaratiladi, balans bo'lmasa soxta video qilinmasdan toza hisobot beriladi). Hech qanday Excel qilma!"
+            "Sen Temur — Bosh Video Rejissyor & AI Prompt Injiniringi mutaxassisisan.\n"
+            "SENING ANIQ QOIDALARING:\n"
+            "1. Foydalanuvchining gapini o'ziga aslo takrorlama!\n"
+            "2. Ssilkadagi video syujetini 1-GA-1 AYNAN O'ZIDEK ol (xayoliy begona sportkarlar, neon shaharlar yoki oyoq bilan yozishlarni ASLO to'qima!).\n"
+            "3. Mashinani albatta foydalanuvchi talabidagi avtomobilga (Oq rangli Chevrolet Labo, davlat raqami 01 A 457 MB), haydovchini esa rasm/tavsifdagi inson qiyofasiga almashtir!\n"
+            "4. HaiLuo AI (MiniMax), Kling AI va Luma uchun mukammal inglizcha KINEMATIK SUPER-PROMPTni alohida kod blokida (```) yozib ber.\n"
+            "5. Foydalanuvchiga uni qaysi bepul platformalarga (HaiLuo yoki Kling) qo'yib tekinga video chiqarib olish mumkinligini o'zbek tilida londa tushuntir.\n"
+            "6. Agar foydalanuvchi 'video yaratib ber' deb ochiq aytmagan bo'lsa, og'ir render asbobini chaqirma, faqat prompt va ssenariyni ber!"
         )
     else:
         system_instruction = SYSTEM_PROMPT
@@ -293,15 +340,14 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
     user_payload = user_msg_content if len(user_msg_content) > 1 else user_text
 
     messages = [
-        {"role": "system", "content": system_instruction},
-        {"role": "user", "content": user_payload}
+        {"role": "system", "content": system_instruction}
     ]
-    
-    # Agar foydalanuvchi faqat prompt yoki ssenariy so'ragan bo'lsa, og'ir video render qilinmaydi (darhol javob beradi)
-    low_u = user_text.lower()
-    is_prompt_only = any(w in low_u for w in ['prompt', 'ssenariy', 'tavsif', 'yozib ber', 'matn']) and not any(w in low_u for w in ['video yarat', 'rolik tayyorla', 'rolik qil', 'mp4 yarat', 'video qil'])
-    tools_to_pass = None if is_prompt_only else TOOLS_SCHEMA
-    
+    if chat_history:
+        for h in chat_history[-6:]:
+            if isinstance(h, dict) and h.get('content') and h.get('role') in ['user', 'assistant']:
+                messages.append({"role": h['role'], "content": str(h['content'])})
+    messages.append({"role": "user", "content": user_payload})
+
     # So'rov yuborish
     resp = ask_openrouter(messages, tools=tools_to_pass)
     choice = resp['choices'][0]
@@ -540,8 +586,41 @@ def run_web_server():
     app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False, threaded=True)
 
 # =======================================================
-# TELEGRAM BOT TIZIMI
+# TELEGRAM BOT TIZIMI VA SUHBAT XOTIRASI
 # =======================================================
+CHAT_HISTORIES = {}
+
+def get_chat_history(chat_id):
+    return CHAT_HISTORIES.get(chat_id, [])
+
+def add_to_chat_history(chat_id, user_msg, assistant_msg):
+    if chat_id not in CHAT_HISTORIES:
+        CHAT_HISTORIES[chat_id] = []
+    CHAT_HISTORIES[chat_id].append({"role": "user", "content": user_msg})
+    CHAT_HISTORIES[chat_id].append({"role": "assistant", "content": assistant_msg})
+    if len(CHAT_HISTORIES[chat_id]) > 8:
+        CHAT_HISTORIES[chat_id] = CHAT_HISTORIES[chat_id][-8:]
+
+def send_long_message(bot, chat_id, text):
+    """Telegramning 4096 belgilik chegarasidan oshib ketmasligi uchun xabarni xavfsiz bo'lib yuboradi"""
+    if not text:
+        return
+    if len(text) <= 4000:
+        bot.send_message(chat_id, text)
+        return
+    parts = []
+    curr = text
+    while len(curr) > 4000:
+        split_idx = curr.rfind('\n', 0, 4000)
+        if split_idx == -1:
+            split_idx = 4000
+        parts.append(curr[:split_idx])
+        curr = curr[split_idx:].lstrip()
+    if curr:
+        parts.append(curr)
+    for p in parts:
+        bot.send_message(chat_id, p)
+
 def run_telegram_bot():
     if not TELEGRAM_BOT_TOKEN:
         print("TELEGRAM_BOT_TOKEN kiritilmagan. Bot ishga tushmadi.")
@@ -555,19 +634,23 @@ def run_telegram_bot():
             return False
         return True
 
-    @bot.message_handler(commands=['start', 'myid'])
+    @bot.message_handler(commands=['start', 'myid', 'reset', 'clear'])
     def send_welcome(message):
         if not check_access(message):
             return
+        CHAT_HISTORIES.pop(message.chat.id, None)
         bot.reply_to(
             message,
-            f"Salom hurmatli rahbar! Men sizning Bosh Direktoringiz Sardorman.\n\n"
+            f"Salom hurmatli rahbar! Men sizning Bosh AI Maslahatchi va Jamoa Rahbaringizman.\n\n"
             f"🆔 Sizning Telegram ID: `{message.chat.id}`\n\n"
-            f"💼 Jamoamiz siz qanday topshiriq bersangiz, aynan o'sha formatda bajaradi:\n"
-            f"• 📊 Jadval, narx yoki hisobot so'rasangiz -> FAQAT Excel (.xlsx) jadvali\n"
-            f"• 🎬 Video, rolik yoki klip so'rasangiz -> FAQAT Video (.mp4) roligi\n"
-            f"• ✍️ Maslahat yoki matn so'rasangiz -> FAQAT professional matn\n\n"
-            f"Topshirig'ingizni bering yoki rasm yuboring!",
+            f"💬 Men bilan xuddi insondek bemalol savol-javob qilishingiz, fikr almashishingiz mumkin. "
+            f"Men gaplaringizni o'zingizga takrorlamayman va so'ramagan ortiqcha fayllaringizni yaratmayman.\n\n"
+            f"🎯 Qanday ishlaymiz:\n"
+            f"• 💬 Oddiy suhbat / savol -> Samimiy insoniy javob va maslahat (faylsiz)\n"
+            f"• 📊 'Excel qilib ber' / 'Jadval tuz' -> Moliya bo'limi tayyor .xlsx jadval yaratadi\n"
+            f"• 🎬 Video ssilka / 'Prompt yoz' -> Labo (01 A 457 MB) va yuzingiz bilan 1-ga-1 Gollivud Super-Prompti beriladi\n"
+            f"• 🎥 'Video yaratib ber' -> Haqiqiy video (.mp4) yaratiladi\n\n"
+            f"Suhbat tarixini tozalash uchun /reset yozishingiz mumkin. Marhamat, topshirig'ingizni bering!",
             parse_mode='Markdown'
         )
 
@@ -577,8 +660,13 @@ def run_telegram_bot():
             return
         bot.send_chat_action(message.chat.id, 'typing')
         try:
-            report, excel_file, video_file = process_agent_request(message.text)
-            bot.send_message(message.chat.id, report)
+            history = get_chat_history(message.chat.id)
+            report, excel_file, video_file = process_agent_request(
+                message.text,
+                chat_history=history
+            )
+            send_long_message(bot, message.chat.id, report)
+            add_to_chat_history(message.chat.id, message.text, report)
             
             # FAQAT SO'RALGAN FAYL YUBORILADI (Ikkisi birga yuborilmaydi)
             if excel_file:
@@ -620,12 +708,15 @@ def run_telegram_bot():
             prompt_text = caption or f"Ushbu biriktirilgan {len(photos)} ta rasmni tahlil qilib to'liq ma'lumot bering."
 
         try:
+            history = get_chat_history(chat_id)
             report, excel_file, video_file = process_agent_request(
                 prompt_text,
                 target_agent=target_agent,
-                uploaded_images=photos
+                uploaded_images=photos,
+                chat_history=history
             )
-            bot.send_message(chat_id, report)
+            send_long_message(bot, chat_id, report)
+            add_to_chat_history(chat_id, prompt_text, report)
             if excel_file:
                 fpath = os.path.join(BASE_DIR, excel_file)
                 if os.path.exists(fpath) and os.path.getsize(fpath) > 500:
@@ -670,7 +761,7 @@ def run_telegram_bot():
                         media_groups_cache[mg_id]['timer'].cancel()
                         media_groups_cache[mg_id]['timer'] = threading.Timer(1.5, process_media_group, args=[mg_id])
                         media_groups_cache[mg_id]['timer'].start()
-                return
+                    return
 
             bot.send_chat_action(message.chat.id, 'typing')
             caption = message.caption or ""
@@ -685,12 +776,15 @@ def run_telegram_bot():
                 target_agent = 'director'
                 prompt_text = caption or "Ushbu rasmni tahlil qilib to'liq ma'lumot bering."
 
+            history = get_chat_history(message.chat.id)
             report, excel_file, video_file = process_agent_request(
                 prompt_text,
                 target_agent=target_agent,
-                uploaded_images=[photo_path]
+                uploaded_images=[photo_path],
+                chat_history=history
             )
-            bot.send_message(message.chat.id, report)
+            send_long_message(bot, message.chat.id, report)
+            add_to_chat_history(message.chat.id, prompt_text, report)
             if excel_file:
                 fpath = os.path.join(BASE_DIR, excel_file)
                 if os.path.exists(fpath) and os.path.getsize(fpath) > 500:
@@ -719,12 +813,15 @@ def run_telegram_bot():
                 new_f.write(downloaded)
                 
             caption = message.caption or "Ushbu videoni tahlil qilib to'liq ma'lumot bering."
+            history = get_chat_history(message.chat.id)
             report, excel_file, video_file = process_agent_request(
                 caption,
                 target_agent='video',
-                uploaded_images=[vid_path]
+                uploaded_images=[vid_path],
+                chat_history=history
             )
-            bot.send_message(message.chat.id, report)
+            send_long_message(bot, message.chat.id, report)
+            add_to_chat_history(message.chat.id, caption, report)
             if excel_file:
                 fpath = os.path.join(BASE_DIR, excel_file)
                 if os.path.exists(fpath) and os.path.getsize(fpath) > 500:
