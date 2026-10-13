@@ -19,7 +19,7 @@ from video_generator import render_dynamic_video, extract_video_from_url, try_re
 # XAVFSIZLIK: Kalitlarni serverdan olamiz
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
-OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct")
+OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "google/gemini-2.5-flash")
 REPLICATE_API_TOKEN = os.environ.get("REPLICATE_API_TOKEN", "")
 if "REPLICATE_API_TOKEN" not in os.environ and REPLICATE_API_TOKEN:
     os.environ["REPLICATE_API_TOKEN"] = REPLICATE_API_TOKEN
@@ -162,7 +162,7 @@ SYSTEM_PROMPT = (
     "Sen Sardor — Professional Bosh Direktorsan (AI Executive Director). Sening qo'ling ostida 3 ta ishonchli mutaxassis xodim ishlaydi:\n"
     "1. Javohir — Bosh Iqtisodchi & Moliya tahlilchisi (Bozor narxlari, smeta va Excel .xlsx jadvallari ustasi).\n"
     "2. Madina — Bosh Kreativ Dizayner (Brending, matnlar, reklama va rasm promptlari ustasi).\n"
-    "3. Temur — Bosh Video Rejissyor & AI Prompt Injiniringi (Video ssilkalarni tahlil qilish, avtomobil va qahramonlarni moslab kinematik Super-Prompt tuzish va .mp4 roliklar ustasi).\n\n"
+    "3. Temur — Bosh Video Rejissyor & AI Prompt Injiniringi (Video ssilkalarni tahlil qilish, avtomobil va qahramonlarni moslab 1-GA-1 KINEMATIK SUPER-PROMPT tuzish ustasi).\n\n"
     "ENG ASOSIY QONUNLAR:\n"
     "1. AGAR FOYDALANUVCHI EXCEL, JADVAL, NARXLAR, SMETA YOKI HISOBOT SO'RASA:\n"
     "   - FAQAT Javohir javob beradi va FAQAT 'excel_fayl_yaratish' funksiyasini chaqirib Excel (.xlsx) fayl yaratadi.\n"
@@ -170,13 +170,16 @@ SYSTEM_PROMPT = (
     "2. AGAR FOYDALANUVCHI MATN, REKLAMA POSTI, MASLAHAT YOKI TUSHUNTIRISH SO'RASA:\n"
     "   - Hech qanday fayl yaratma! Faqat aniq, tushunarli va chiroyli matn bilan javob ber.\n"
     "3. AGAR FOYDALANUVCHI VIDEO, ROLIK YOKI VIDEO SSILKANI O'ZGARTIRISH (MASALAN, MOSHINANI LABOGA, ODAMNI RASMDAGI INSONGA ALMASHTIRISH) SO'RASA:\n"
-    "   - Temur videoni va yuborilgan rasmlarni chuqur tahlil qiladi;\n"
-    "   - Videodagi avtomobilni foydalanuvchi so'ragan mashinaga (masalan: Oq rangli Chevrolet Labo, davlat raqami suratdagidek: 01 A 457 MB), qahramonni esa foydalanuvchi suratidagi inson qiyofasiga moslashtirib, Minimax, Kling AI, Luma va Sora uchun mukammal inglizcha KINEMATOGRAFIK SUPER-PROMPT yaratadi!\n"
+    "   - Temur videoni va yuborilgan rasmlarni 1-GA-1 CHUQUR VA ANIQ TAHLIL QILADI!\n"
+    "   - O'ZBEKCHA SO'ZLASHUV IBORALARINI (masalan: 'oyog'ini osmondan qilib' = teskari/noto'g'ri qilib) so'zma-so'z tushunma! Aslo osmonda oyoq bilan yozish yoki pushti bulutlar kabi kulgili narsalarni to'qima!\n"
+    "   - Ssilkadagi videoda nima harakat bo'layotgan bo'lsa (masalan: o'rmon yo'lida avtomobilning robot-monstrga/mechga aylanishi, tishlari, panjalari, haydovchi hayrati), AYNAN O'SHA SAHNANI 1-GA-1 TO'LIQ SAQLAB QOL!\n"
+    "   - Begona neon shahar yoki futuristik sportkarlarni to'qish QAT'IYAN TAQIQLANADI!\n"
+    "   - Sahnadagi avtomobilni FAQAT foydalanuvchi suratidagi mashinaga (masalan: Oq rangli Chevrolet Labo, davlat raqami suratdagidek: 01 A 457 MB), haydovchini esa FAQAT suratdagi inson qiyofasiga almashtir!\n"
     "   - Javob hisobotida quyidagilarni aniq beradi:\n"
-    "     a) 🎬 KINEMATIK SUPER-PROMPT (Alohida kod blokida, ingliz tilida nusxalash uchun);\n"
-    "     b) 📝 O'ZBEKCHA TUSHUNTIRISH (Qanday sahnada Labo va qahramon harakatlanishi);\n"
-    "     c) 🌐 BEPUL VIDEO OLISH YO'RIQNOMASI: HaiLuo AI (hailuoai.video), Kling AI (klingai.com) va Luma Dream Machine (lumalabs.ai) saytlariga kirib, ushbu promptni tashlab 100% BEPUL video olish usuli;\n"
-    "     d) 'video_rolik_yaratish' asbobini chaqiradi (agar Replicate hisobida mablag' bo'lsa, to'g'ridan-to'g'ri MP4 video faylini ham yaratadi);\n"
+    "     a) 🎬 KINEMATIK SUPER-PROMPT: (MiniMax / HaiLuo AI, Kling AI, Luma uchun alohida inglizcha kod blokida, Hollywood darajasidagi boy detallar bilan);\n"
+    "     b) 📝 O'ZBEKCHA TUSHUNTIRISH: (Sahnada aynan nimalar bo'layotgani);\n"
+    "     c) 🌐 BEPUL VIDEO OLISH YO'RIQNOMASI: HaiLuo AI (hailuoai.video), Kling AI (klingai.com) saytlariga kirib 100% BEPUL video olish usuli;\n"
+    "     d) 'video_rolik_yaratish' asbobini chaqiradi (agar Replicate balansi bo'lsa MP4 beriladi, bo'lmasa soxta videosiz toza hisobot beriladi);\n"
     "4. BIR VAQTDA HAM EXCEL, HAM VIDEO BERISH QAT'IYAN TAQIQLANADI! Har bir so'rovga faqat 1 ta tegishli natija berilsin.\n"
 )
 
@@ -213,6 +216,7 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
     """Foydalanuvchi topshirig'ini bajarib, faqat so'ralgan natijani qaytaradi"""
     # 0. Ssilka tahlili: Agar matnda Instagram, TikTok, YouTube ssilka bo'lsa, haqiqiy ma'lumotni olamiz
     found_video_url = None
+    video_keyframes = []
     import re
     url_match = re.search(r'(https?://[^\s]+)', user_text)
     if url_match:
@@ -222,12 +226,15 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
             try:
                 info = extract_video_from_url(found_video_url, download=True)
                 if info.get('status') == 'success':
+                    video_keyframes = info.get('keyframes_b64', [])
                     user_text += (
-                        f"\n\n[SSILKA BO'YICHA ANIQ REAL MA'LUMOT]:\n"
+                        f"\n\n[SSILKADAGI VIDEO REAL MA'LUMOTLARI]:\n"
                         f"• Muallif/Kanal: {info.get('uploader')}\n"
                         f"• Video Nomi: {info.get('title')}\n"
                         f"• Video Asosiy Tavsifi: {info.get('description')}\n"
-                        f"\n[VAZIFA]: Ushbu video syujetini o'rganib, mashinani foydalanuvchi so'ragan avtomobilga (masalan: Oq rangli Chevrolet Labo, davlat raqami suratdagidek), qahramonni esa suratdagi inson qiyofasiga almashtirgan holda, AI video generatorlar (HaiLuo/Minimax, Kling AI, Luma) uchun ingliz tilida mukammal KINEMATIK SUPER-PROMPT tuz va bepul video olish yo'riqnomasini ber!"
+                        f"\n[QAT'IY VAZIFA]: Ushbu video syujetini 1-GA-1 AYNAN O'ZIDEK ol (xayoliy begona sportkarlar, neon shaharlar yoki oyoq bilan yozishlarni ASLO to'qima!). "
+                        f"Videodagi mashinani foydalanuvchi surati va talabidagi avtomobilga (Oq rangli Chevrolet Labo, davlat raqami 01 A 457 MB), "
+                        f"haydovchini esa suratdagi inson qiyofasiga almashtirgan holda MiniMax (HaiLuo AI), Kling AI uchun ingliz tilida mukammal KINEMATIK SUPER-PROMPT yoz!"
                     )
             except Exception as e:
                 print("Ssilka tahlili xatosi:", e)
@@ -246,16 +253,48 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
         system_instruction = (
             "Sen Temur — Bosh Video Rejissyor & AI Prompt Injiniringi mutaxassisisan. Foydalanuvchi video rolik yoki video ssilkani o'zgartirishni so'radi.\n"
             "Sening vazifang:\n"
-            "1. Ssilkadagi voqeani o'rganib, avtomobilni Laboga (nomeri bilan), qahramonni foydalanuvchi suratidagi inson ko'rinishiga moslab, Minimax/Kling/Luma uchun inglizcha KINEMATIK SUPER-PROMPT yozish!\n"
-            "2. Uni nusxalash uchun kod blokida berish va bepul HaiLuo (hailuoai.video), Kling (klingai.com) saytlarida qanday qilib tekinga chiqarib olishni tushuntirish.\n"
-            "3. 'video_rolik_yaratish' asbobini chaqirish (agar Replicate balansi bo'lsa, MP4 video yaratiladi, balans bo'lmasa soxta video qilinmasdan toza hisobot beriladi). Hech qanday Excel qilma!"
+            "1. Ssilkadagi voqeani 1-GA-1 o'rganib, avtomobilni Laboga (nomeri 01 A 457 MB bilan), qahramonni foydalanuvchi suratidagi inson ko'rinishiga moslab, Minimax/Kling/Luma uchun inglizcha KINEMATIK SUPER-PROMPT yozish!\n"
+            "2. O'zbekcha iboralarni noto'g'ri tushunma, xayoliy neon shaharlar to'qima!\n"
+            "3. Uni nusxalash uchun kod blokida berish va bepul HaiLuo (hailuoai.video), Kling (klingai.com) saytlarida qanday qilib tekinga chiqarib olishni tushuntirish.\n"
+            "4. 'video_rolik_yaratish' asbobini chaqirish (agar Replicate balansi bo'lsa, MP4 video yaratiladi, balans bo'lmasa soxta video qilinmasdan toza hisobot beriladi). Hech qanday Excel qilma!"
         )
     else:
         system_instruction = SYSTEM_PROMPT
 
+    # Multimodal xabar shakllantirish (AI rasmlarni va kadrlarni o'z ko'zi bilan ko'rishi uchun)
+    user_msg_content = [{"type": "text", "text": user_text}]
+    
+    # Videodan olingan kadrlar
+    for kf in video_keyframes[:2]:
+        user_msg_content.append({
+            "type": "image_url",
+            "image_url": {"url": f"data:image/jpeg;base64,{kf}"}
+        })
+        
+    # Foydalanuvchi yuklagan rasmlar (Labo va inson surati)
+    if uploaded_images:
+        from PIL import Image
+        import io
+        for img_p in uploaded_images[:3]:
+            if os.path.exists(img_p):
+                try:
+                    with Image.open(img_p) as im:
+                        im.thumbnail((512, 512))
+                        buf = io.BytesIO()
+                        im.convert('RGB').save(buf, format='JPEG', quality=80)
+                        b64_im = base64.b64encode(buf.getvalue()).decode('utf-8')
+                        user_msg_content.append({
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/jpeg;base64,{b64_im}"}
+                        })
+                except Exception as e:
+                    print("Rasm b64 xatosi:", e)
+
+    user_payload = user_msg_content if len(user_msg_content) > 1 else user_text
+
     messages = [
         {"role": "system", "content": system_instruction},
-        {"role": "user", "content": user_text}
+        {"role": "user", "content": user_payload}
     ]
     
     # So'rov yuborish

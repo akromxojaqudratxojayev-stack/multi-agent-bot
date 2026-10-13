@@ -81,6 +81,31 @@ def fit_and_crop_rgb(img: Image.Image, target_w: int, target_h: int) -> Image.Im
     cropped = img.crop((left, top, left + crop_w, top + crop_h))
     return cropped.resize((target_w, target_h), Image.Resampling.BILINEAR)
 
+def extract_keyframes_base64(video_path: str, max_frames: int = 2) -> list[str]:
+    """Videodan asosiy kadrlarni ajratib, AI ko'rishi uchun base64 formatda qaytaradi."""
+    if not video_path or not os.path.exists(video_path):
+        return []
+    try:
+        import imageio.v3 as iio
+        from io import BytesIO
+        import base64
+        frames = list(iio.imiter(video_path))
+        if not frames:
+            return []
+        indices = [len(frames) // 4, len(frames) * 3 // 4] if len(frames) > 4 else [0]
+        result = []
+        for idx in indices[:max_frames]:
+            img = Image.fromarray(frames[idx])
+            img.thumbnail((512, 512))
+            buf = BytesIO()
+            img.save(buf, format="JPEG", quality=75)
+            b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+            result.append(b64)
+        return result
+    except Exception as e:
+        print(f"[Keyframe extraction xatosi]: {e}")
+        return []
+
 def extract_video_from_url(url: str, output_folder: str = None, download: bool = False) -> dict:
     """
     Instagram, TikTok, YouTube ssilkasidagi videoni tahlil qiladi va kerak bo'lsa yuklab oladi.
@@ -106,6 +131,7 @@ def extract_video_from_url(url: str, output_folder: str = None, download: bool =
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=download)
             video_path = ydl.prepare_filename(info) if download else None
+            keyframes = extract_keyframes_base64(video_path, max_frames=2) if (download and video_path) else []
             res = {
                 'status': 'success',
                 'title': info.get('title', ''),
@@ -113,7 +139,8 @@ def extract_video_from_url(url: str, output_folder: str = None, download: bool =
                 'uploader': info.get('uploader', ''),
                 'duration': info.get('duration', 0),
                 'thumbnail': info.get('thumbnail', ''),
-                'video_path': video_path
+                'video_path': video_path,
+                'keyframes_b64': keyframes
             }
             _URL_CACHE[url] = res
             gc.collect()
