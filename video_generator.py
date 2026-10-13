@@ -122,51 +122,78 @@ def extract_video_from_url(url: str, output_folder: str = None, download: bool =
         print(f"[yt-dlp xatolik]: {e}")
         return {'status': 'error', 'error': str(e)}
 
-def try_replicate_faceswap(source_image_path: str, target_video_path: str, output_path: str) -> tuple[bool, bool]:
+def try_replicate_faceswap(source_image_paths: list, target_video_path: str, output_path: str, instruction: str = "") -> tuple[bool, str]:
     """
-    Replicate AI orqali videodagi odamning yuzini yangi rasm yuziga almashtirish.
-    Qaytaradi: (success: bool, insufficient_credit: bool)
+    Replicate AI (prunaai/p-video-replace) orqali videodagi odamni yuborilgan rasmga 100% fotorealistik almashtirish.
+    Qaytaradi: (success: bool, error_msg: str)
     """
     token = os.environ.get("REPLICATE_API_TOKEN", "") or REPLICATE_API_TOKEN
-    if not token or not output_path or not source_image_path or not target_video_path:
-        return False, False
+    if not token:
+        return False, "REPLICATE_API_TOKEN topilmadi."
+    if not output_path or not source_image_paths or not target_video_path:
+        return False, "Kiruvchi video yoki rasmlar yetishmaydi."
         
     try:
         import time
         import replicate
         import requests
-        print("[Replicate FaceSwap]: Video Face-Swap boshlandi...")
+        print("[Replicate Video Replace]: Haqiqiy AI Video Replace (prunaai/p-video-replace) boshlandi...")
         
-        with open(source_image_path, "rb") as s_img, open(target_video_path, "rb") as t_vid:
-            pred = replicate.predictions.create(
-                version="50a0a0018673852629578e627576326036b407e0dbd8cf8a0b5028296726dc5c",
+        opened_files = []
+        try:
+            target_vid_file = open(target_video_path, "rb")
+            opened_files.append(target_vid_file)
+            
+            img_files = []
+            for img_p in source_image_paths[:3]:
+                if os.path.exists(img_p):
+                    f = open(img_p, "rb")
+                    opened_files.append(f)
+                    img_files.append(f)
+                    
+            if not img_files:
+                return False, "Qahramon rasmlari topilmadi."
+                
+            pred = replicate.models.predictions.create(
+                "prunaai/p-video-replace",
                 input={
-                    "source_image": s_img,
-                    "target_video": t_vid,
-                    "enhance": True
+                    "video": target_vid_file,
+                    "images": img_files,
+                    "instruction_prompt": instruction or "Replace the character/driver in the video with the person from the reference images seamlessly",
+                    "turbo": True,
+                    "save_audio": True
                 }
             )
             
-        for _ in range(60):
-            if pred.status in ("succeeded", "failed", "canceled"):
-                break
-            time.sleep(3)
-            pred.reload()
-            
-        if pred.status == "succeeded" and pred.output:
-            url = str(pred.output)
-            r = requests.get(url, timeout=120)
-            if r.status_code == 200:
-                with open(output_path, "wb") as f:
-                    f.write(r.content)
-                return True, False
+            for _ in range(80):
+                if pred.status in ("succeeded", "failed", "canceled"):
+                    break
+                time.sleep(3)
+                pred.reload()
+                
+            if pred.status == "succeeded" and pred.output:
+                url = str(pred.output)
+                r = requests.get(url, timeout=120)
+                if r.status_code == 200:
+                    with open(output_path, "wb") as f:
+                        f.write(r.content)
+                    return True, ""
+            elif pred.status == "failed":
+                return False, f"Replicate AI generatsiya xatosi: {pred.error}"
+        finally:
+            for f in opened_files:
+                try:
+                    f.close()
+                except Exception:
+                    pass
     except Exception as e:
         err_str = str(e)
-        print(f"[Replicate FaceSwap xatosi]: {err_str}")
+        print(f"[Replicate Video Replace xatosi]: {err_str}")
         if "402" in err_str or "Insufficient credit" in err_str:
-            return False, True
+            return False, "Replicate hisobida balans yetarli emas (402 Insufficient credit). AI Video Face-Swap va videodagi odamni almashtirish uchun Replicate.com hisobingizda balans bo'lishi kerak."
+        return False, err_str
             
-    return False, False
+    return False, "Video almashtirish amalga oshmadi."
 
 def try_replicate_video(prompt, image_path=None, output_path=None) -> bool:
     """Agar REPLICATE_API_TOKEN mavjud bo'lsa va balans yetarli bo'lsa, Replicate orqali AI video yaratadi."""
@@ -236,20 +263,23 @@ def render_dynamic_video(fayl_nomi: str, mavzu: str, kadrlar: list, uploaded_ima
     output_path = os.path.join(BASE_DIR, fayl_nomi)
     first_img = uploaded_images[0] if (uploaded_images and len(uploaded_images) > 0) else None
     
-    # 1. Replicate Face-Swap va Video Generatsiyani sinab ko'ramiz
-    no_credit = False
-    if reference_video and os.path.exists(reference_video) and first_img:
-        ok, no_credit = try_replicate_faceswap(source_image_path=first_img, target_video_path=reference_video, output_path=output_path)
+    # 1. Agar referans video berilgan bo'lsa (Face-Swap / Video Replace vazifasi)
+    if reference_video and os.path.exists(reference_video) and uploaded_images:
+        instruction = f"{mavzu}. Replace the actor/driver with the user photo and replace the vehicle if requested."
+        ok, err_msg = try_replicate_faceswap(source_image_paths=uploaded_images, target_video_path=reference_video, output_path=output_path, instruction=instruction)
         if ok:
             return fayl_nomi
+        else:
+            # Soxta yoki stikerli video berish taqiqlanadi! Foydalanuvchiga to'g'ri va haqiqiy xato beriladi.
+            raise Exception(err_msg or "AI Video Face-Swap generatsiyasida xatolik yuz berdi.")
             
-    if not no_credit:
-        prompt_full = f"{mavzu}. " + " ".join([k.get('vizual', '') or k.get('matn', '') for k in kadrlar if isinstance(k, dict)])
-        if try_replicate_video(prompt_full, image_path=first_img, output_path=output_path):
-            return fayl_nomi
+    # 2. Agar referans video bo'lmasa, Replicate AI Video (minimax/video-01) generatsiyasini sinab ko'ramiz
+    prompt_full = f"{mavzu}. " + " ".join([k.get('vizual', '') or k.get('matn', '') for k in kadrlar if isinstance(k, dict)])
+    if try_replicate_video(prompt_full, image_path=first_img, output_path=output_path):
+        return fayl_nomi
 
-    # 2. Avtonom Tezkor HD Montaj Dvigateli (Render 512MB RAM uchun maxsus optimallashtirilgan)
-    print(f"[Video Asbob]: {fayl_nomi} yaratilmoqda (Avtonom Tezkor Dvigatel)...")
+    # 3. Avtonom HD Video Dvigateli (Foydalanuvchi yuklagan rasmlar asosida toza, professional video)
+    print(f"[Video Asbob]: {fayl_nomi} yaratilmoqda (Avtonom HD Dvigatel)...")
     
     # 16 ga karrali o'lchamlar (H.264 kodek ogohlantirishsiz va minimal RAM bilan ishlashi uchun)
     width = 480 if vertical else 848
@@ -328,11 +358,6 @@ def render_dynamic_video(fayl_nomi: str, mavzu: str, kadrlar: list, uploaded_ima
     font_title = get_font(22, bold=True)
     font_body = get_font(16, bold=False)
 
-    # PiP (Picture-in-Picture) kichik kartochkalar (referans video ustida foydalanuvchi rasmlarini ko'rsatish uchun)
-    pip_thumbs = []
-    for im in loaded_images[:2]:
-        pip_thumbs.append(fit_and_crop_rgb(im, 110, 110))
-
     writer = imageio.get_writer(
         output_path,
         fps=fps,
@@ -342,7 +367,7 @@ def render_dynamic_video(fayl_nomi: str, mavzu: str, kadrlar: list, uploaded_ima
     )
 
     for s_idx, scene in enumerate(kadrlar):
-        s_title = scene.get('sarlavha', f"{s_idx+1}-Kadr") if isinstance(scene, dict) else f"{s_idx+1}-Kadr"
+        s_title = scene.get('sarlavha', '') if isinstance(scene, dict) else ''
         s_text = scene.get('matn', '') if isinstance(scene, dict) else str(scene)
         static_im = scene_images[s_idx]
         
@@ -357,51 +382,34 @@ def render_dynamic_video(fayl_nomi: str, mavzu: str, kadrlar: list, uploaded_ima
                 ox = int(max_dx * (t if s_idx % 2 == 0 else (1.0 - t)))
                 oy = int(max_dy * t * 0.8)
                 frame_img = static_im.crop((ox, oy, ox + width, oy + height)).copy()
-                
-                # Agar referans video ham bo'lsa, burchakda kichik jonli kadr ko'rsatamiz
-                if ref_frames:
-                    rf = ref_frames[(s_idx * frames_per_scene + f) % len(ref_frames)]
-                    rf_small = rf.resize((116, 160), Image.Resampling.BILINEAR)
-                    frame_img.paste(rf_small, (width - 132, 76))
             elif ref_frames:
-                # Jonli referans video oqimi + foydalanuvchi yuklagan Qahramon va Labo rasmlari PiP burchagida
                 rf = ref_frames[(s_idx * frames_per_scene + f) % len(ref_frames)]
                 frame_img = rf.copy()
-                for p_i, p_thumb in enumerate(pip_thumbs):
-                    px = 16 + p_i * 120
-                    py = 76
-                    frame_img.paste(p_thumb, (px, py))
             else:
                 frame_img = Image.new("RGB", (width, height), (15, 23, 42))
 
             draw = ImageDraw.Draw(frame_img)
 
-            # Yuqori va pastki qora panellar (alpha_composite o'rniga tez va yengil to'g'ridan-to'g'ri chizish)
-            draw.rectangle([(0, 0), (width, 62)], fill=(13, 20, 33))
-            draw.line([(0, 62), (width, 62)], fill=(42, 171, 238), width=2)
-            draw.text((width // 2, 22), "AI EXECUTIVE STUDIO • HD PRODUCTION", fill=(226, 232, 240), font=font_badge, anchor="mm")
-            draw.text((width // 2, 44), f"SAHNA {s_idx + 1} / {total_scenes}", fill=(42, 171, 238), font=font_badge, anchor="mm")
-
-            # Pastki subtitr bloki
-            title_lines = wrap_text(s_title, font_title, width - 48, draw)
-            sub_lines = wrap_text(s_text, font_body, width - 48, draw)
-            
-            panel_h = 36 + len(title_lines) * 28 + len(sub_lines) * 22
-            panel_top = height - panel_h - 14
-            draw.rectangle([(12, panel_top), (width - 12, height - 12)], fill=(15, 23, 42), outline=(42, 171, 238), width=1)
-            
-            curr_y = panel_top + 20
-            for line in title_lines:
-                draw.text((width // 2, curr_y), line, fill=(251, 191, 36), font=font_title, anchor="mm")
-                curr_y += 28
-            curr_y += 4
-            for line in sub_lines:
-                draw.text((width // 2, curr_y), line, fill=(241, 245, 249), font=font_body, anchor="mm")
-                curr_y += 22
+            # Agar matn yoki sarlavha bo'lsa, pastda qulay, toza subtitr ko'rsatiladi
+            if s_title or s_text:
+                title_lines = wrap_text(s_title, font_title, width - 48, draw) if s_title else []
+                sub_lines = wrap_text(s_text, font_body, width - 48, draw) if s_text else []
+                
+                panel_h = 24 + len(title_lines) * 26 + len(sub_lines) * 20
+                panel_top = height - panel_h - 18
+                draw.rectangle([(16, panel_top), (width - 16, height - 16)], fill=(15, 23, 42), outline=(42, 171, 238), width=1)
+                
+                curr_y = panel_top + 16
+                for line in title_lines:
+                    draw.text((width // 2, curr_y), line, fill=(251, 191, 36), font=font_title, anchor="mm")
+                    curr_y += 26
+                for line in sub_lines:
+                    draw.text((width // 2, curr_y), line, fill=(241, 245, 249), font=font_body, anchor="mm")
+                    curr_y += 20
 
             # Progress chizig'i
             overall_progress = (s_idx * frames_per_scene + f + 1) / float(total_scenes * frames_per_scene)
-            draw.rectangle([(0, height - 5), (int(width * overall_progress), height)], fill=(42, 171, 238))
+            draw.rectangle([(0, height - 4), (int(width * overall_progress), height)], fill=(42, 171, 238))
 
             writer.append_data(np.asarray(frame_img))
 

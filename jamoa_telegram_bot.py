@@ -162,19 +162,22 @@ SYSTEM_PROMPT = (
     "Sen Sardor — Professional Bosh Direktorsan (AI Executive Director). Sening qo'ling ostida 3 ta ishonchli mutaxassis xodim ishlaydi:\n"
     "1. Javohir — Bosh Iqtisodchi & Moliya tahlilchisi (Bozor narxlari, smeta va Excel .xlsx jadvallari ustasi).\n"
     "2. Madina — Bosh Kreativ Dizayner (Brending, matnlar, reklama va rasm promptlari ustasi).\n"
-    "3. Temur — Bosh Video Rejissyor & IT (Video ssilkalarni tahlil qilish, kadrma-kadr video-hikoyalar va .mp4 video roliklar yaratish ustasi).\n\n"
-    "ENG ASOSIY QONUN: FAQAT FOYDALANUVCHI SO'RAGAN NARSANI QIL!\n"
+    "3. Temur — Bosh Video Rejissyor & AI Prompt Injiniringi (Video ssilkalarni tahlil qilish, avtomobil va qahramonlarni moslab kinematik Super-Prompt tuzish va .mp4 roliklar ustasi).\n\n"
+    "ENG ASOSIY QONUNLAR:\n"
     "1. AGAR FOYDALANUVCHI EXCEL, JADVAL, NARXLAR, SMETA YOKI HISOBOT SO'RASA:\n"
     "   - FAQAT Javohir javob beradi va FAQAT 'excel_fayl_yaratish' funksiyasini chaqirib Excel (.xlsx) fayl yaratadi.\n"
     "   - Video UMUMAN qilinmaydi! Hech qanday video funksiyasini chaqirma!\n"
-    "2. AGAR FOYDALANUVCHI VIDEO, ROLIK, KLIP YOKI VIDEO SSILKA ASOSIDA ROLIK SO'RASA:\n"
-    "   - FAQAT Temur javob beradi va FAQAT 'video_rolik_yaratish' funksiyasini chaqirib .mp4 video fayl yaratadi.\n"
-    "   - Excel UMUMAN qilinmaydi! Hech qanday excel funksiyasini chaqirma!\n"
-    "3. AGAR FOYDALANUVCHI MATN, REKLAMA POSTI, MASLAHAT YOKI TUSHUNTIRISH SO'RASA:\n"
+    "2. AGAR FOYDALANUVCHI MATN, REKLAMA POSTI, MASLAHAT YOKI TUSHUNTIRISH SO'RASA:\n"
     "   - Hech qanday fayl yaratma! Faqat aniq, tushunarli va chiroyli matn bilan javob ber.\n"
+    "3. AGAR FOYDALANUVCHI VIDEO, ROLIK YOKI VIDEO SSILKANI O'ZGARTIRISH (MASALAN, MOSHINANI LABOGA, ODAMNI RASMDAGI INSONGA ALMASHTIRISH) SO'RASA:\n"
+    "   - Temur videoni va yuborilgan rasmlarni chuqur tahlil qiladi;\n"
+    "   - Videodagi avtomobilni foydalanuvchi so'ragan mashinaga (masalan: Oq rangli Chevrolet Labo, davlat raqami suratdagidek: 01 A 457 MB), qahramonni esa foydalanuvchi suratidagi inson qiyofasiga moslashtirib, Minimax, Kling AI, Luma va Sora uchun mukammal inglizcha KINEMATOGRAFIK SUPER-PROMPT yaratadi!\n"
+    "   - Javob hisobotida quyidagilarni aniq beradi:\n"
+    "     a) 🎬 KINEMATIK SUPER-PROMPT (Alohida kod blokida, ingliz tilida nusxalash uchun);\n"
+    "     b) 📝 O'ZBEKCHA TUSHUNTIRISH (Qanday sahnada Labo va qahramon harakatlanishi);\n"
+    "     c) 🌐 BEPUL VIDEO OLISH YO'RIQNOMASI: HaiLuo AI (hailuoai.video), Kling AI (klingai.com) va Luma Dream Machine (lumalabs.ai) saytlariga kirib, ushbu promptni tashlab 100% BEPUL video olish usuli;\n"
+    "     d) 'video_rolik_yaratish' asbobini chaqiradi (agar Replicate hisobida mablag' bo'lsa, to'g'ridan-to'g'ri MP4 video faylini ham yaratadi);\n"
     "4. BIR VAQTDA HAM EXCEL, HAM VIDEO BERISH QAT'IYAN TAQIQLANADI! Har bir so'rovga faqat 1 ta tegishli natija berilsin.\n"
-    "5. REPLICATE AI VIDEOLAR VA FACE-SWAP:\n"
-    "   - Replicate AI (Minimax Video va Face-Swap) kaliti to'liq ulangan va faol! Agar foydalanuvchi video yoki face-swap so'rasa, Temur 'video_rolik_yaratish' funksiyasini chaqirib haqiqiy AI video yoki video face-swap yaratadi!\n"
 )
 
 def ask_openrouter(messages, tools=None):
@@ -224,6 +227,7 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
                         f"• Muallif/Kanal: {info.get('uploader')}\n"
                         f"• Video Nomi: {info.get('title')}\n"
                         f"• Video Asosiy Tavsifi: {info.get('description')}\n"
+                        f"\n[VAZIFA]: Ushbu video syujetini o'rganib, mashinani foydalanuvchi so'ragan avtomobilga (masalan: Oq rangli Chevrolet Labo, davlat raqami suratdagidek), qahramonni esa suratdagi inson qiyofasiga almashtirgan holda, AI video generatorlar (HaiLuo/Minimax, Kling AI, Luma) uchun ingliz tilida mukammal KINEMATIK SUPER-PROMPT tuz va bepul video olish yo'riqnomasini ber!"
                     )
             except Exception as e:
                 print("Ssilka tahlili xatosi:", e)
@@ -240,8 +244,11 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
         )
     elif target_agent == 'video':
         system_instruction = (
-            "Sen Temur — Bosh Video Rejissyor & IT mutaxassisisan. Foydalanuvchi video rolik yoki animatsiya so'radi. "
-            "Sening vazifang: 'video_rolik_yaratish' funksiyasini chaqirib haqiqiy .mp4 video rolik yaratish! Hech qanday Excel qilma!"
+            "Sen Temur — Bosh Video Rejissyor & AI Prompt Injiniringi mutaxassisisan. Foydalanuvchi video rolik yoki video ssilkani o'zgartirishni so'radi.\n"
+            "Sening vazifang:\n"
+            "1. Ssilkadagi voqeani o'rganib, avtomobilni Laboga (nomeri bilan), qahramonni foydalanuvchi suratidagi inson ko'rinishiga moslab, Minimax/Kling/Luma uchun inglizcha KINEMATIK SUPER-PROMPT yozish!\n"
+            "2. Uni nusxalash uchun kod blokida berish va bepul HaiLuo (hailuoai.video), Kling (klingai.com) saytlarida qanday qilib tekinga chiqarib olishni tushuntirish.\n"
+            "3. 'video_rolik_yaratish' asbobini chaqirish (agar Replicate balansi bo'lsa, MP4 video yaratiladi, balans bo'lmasa soxta video qilinmasdan toza hisobot beriladi). Hech qanday Excel qilma!"
         )
     else:
         system_instruction = SYSTEM_PROMPT
@@ -309,7 +316,7 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
                     created_excel = None  # Excel bo'lmasligi shart!
                     content_str = f"Video fayli '{v_res}' yaratildi."
                 except Exception as e:
-                    content_str = f"Video xatosi: {e}"
+                    content_str = f"Video generatsiya holati: {e}. Iltimos, foydalanuvchiga ssenariy asosidagi inglizcha KINEMATIK SUPER-PROMPTni alohida kod blokida va HaiLuo AI (hailuoai.video), Kling AI (klingai.com) saytlari orqali 100% bepul video olish yo'riqnomasini to'liq taqdim et."
                 tool_responses.append({
                     "role": "tool",
                     "tool_call_id": t_id,
