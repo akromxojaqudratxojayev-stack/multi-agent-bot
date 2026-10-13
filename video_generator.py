@@ -99,13 +99,14 @@ def try_replicate_faceswap(source_image_path: str, target_video_path: str, outpu
         return False
         
     try:
+        import time
         import replicate
         import requests
         print("[Replicate FaceSwap]: Video Face-Swap boshlandi...")
         
         with open(source_image_path, "rb") as s_img, open(target_video_path, "rb") as t_vid:
-            output = replicate.run(
-                "ddvinh1/video-faceswap-gpu:50a0a0018673852629578e627576326036b407e0dbd8cf8a0b5028296726dc5c",
+            pred = replicate.predictions.create(
+                version="50a0a0018673852629578e627576326036b407e0dbd8cf8a0b5028296726dc5c",
                 input={
                     "source_image": s_img,
                     "target_video": t_vid,
@@ -113,14 +114,22 @@ def try_replicate_faceswap(source_image_path: str, target_video_path: str, outpu
                 }
             )
             
-        if output:
-            url = str(output)
+        for _ in range(70):
+            if pred.status in ("succeeded", "failed", "canceled"):
+                break
+            time.sleep(3)
+            pred.reload()
+            
+        if pred.status == "succeeded" and pred.output:
+            url = str(pred.output)
             print(f"[Replicate FaceSwap]: Tayyor: {url}")
             r = requests.get(url, timeout=180)
             if r.status_code == 200:
                 with open(output_path, "wb") as f:
                     f.write(r.content)
                 return True
+        else:
+            print(f"[Replicate FaceSwap holati]: {pred.status} - {pred.error}")
     except Exception as e:
         print(f"[Replicate FaceSwap xatosi]: {e}")
         
@@ -133,49 +142,64 @@ def try_replicate_video(prompt, image_path=None, output_path=None):
         return False
         
     try:
+        import time
         import replicate
         import requests
-        print("🚀 [Replicate AI]: Video generatsiya boshlandi...")
+        print("[Replicate AI]: Video generatsiya boshlandi...")
         
-        # Minimax Video-01
+        inp = {
+            "prompt": prompt or "High quality cinematic motion, highly detailed 4k, smooth cinematic video",
+            "prompt_optimizer": True
+        }
         if image_path and os.path.exists(image_path):
             with open(image_path, "rb") as img_file:
-                output = replicate.run(
-                    "minimax/video-01",
-                    input={
-                        "prompt": prompt or "High quality cinematic motion, highly detailed 4k, smooth cinematic video",
-                        "first_frame_image": img_file,
-                        "prompt_optimizer": True
-                    }
-                )
+                inp["first_frame_image"] = img_file
+                pred = replicate.models.predictions.create("minimax/video-01", input=inp)
         else:
-            output = replicate.run(
-                "minimax/video-01",
-                input={
-                    "prompt": prompt or "Cinematic commercial video clip, ultra realistic, 4k",
-                    "prompt_optimizer": True
-                }
-            )
+            pred = replicate.models.predictions.create("minimax/video-01", input=inp)
             
-        if output:
-            url = str(output)
+        for _ in range(75):
+            if pred.status in ("succeeded", "failed", "canceled"):
+                break
+            time.sleep(3)
+            pred.reload()
+            
+        if pred.status == "succeeded" and pred.output:
+            url = str(pred.output)
             print(f"[Replicate AI]: Video tayyor: {url}")
             r = requests.get(url, timeout=180)
             if r.status_code == 200:
                 with open(output_path, "wb") as f:
                     f.write(r.content)
                 return True
+        else:
+            print(f"[Replicate AI holati]: {pred.status} - {pred.error}")
     except Exception as e:
         print(f"[Replicate AI] Ogohlantirish: {e}. Avtonom dvigatelga o'tilmoqda.")
         
     return False
+
+def generate_free_ai_image(prompt_text: str, width: int = 720, height: int = 1280):
+    """Pollinations Flux AI orqali tekin fotorealistik kadr tasvirini yaratadi."""
+    try:
+        import requests
+        import urllib.parse
+        from io import BytesIO
+        clean_p = urllib.parse.quote(f"Cinematic 4k photorealistic scene, {prompt_text[:200]}")
+        url = f"https://image.pollinations.ai/prompt/{clean_p}?width={width}&height={height}&nologo=true&seed={abs(hash(prompt_text)) % 9999}"
+        r = requests.get(url, timeout=18)
+        if r.status_code == 200 and len(r.content) > 2000:
+            return Image.open(BytesIO(r.content)).convert("RGBA")
+    except Exception as e:
+        print(f"[AI Image Fallback xatosi]: {e}")
+    return None
 
 def render_dynamic_video(fayl_nomi: str, mavzu: str, kadrlar: list, uploaded_images: list = None, vertical: bool = True, reference_video: str = None) -> str:
     """
     To'liq professional video rolik yaratuvchi dvigatel.
     1. Agar reference_video va rasm bo'lsa -> Replicate FaceSwap bajaradi.
     2. Agar matn/kadrlar bo'lsa -> Replicate Minimax AI video yaratadi.
-    3. Agar Replicate offline bo'lsa -> Avtonom montaj dvigateli ishlaydi.
+    3. Agar Replicate offline/kreditsiz bo'lsa -> Referans video kadrlari + Yuklangan rasmlar + AI tasvirlar asosida HD video montaj qiladi.
     """
     if not fayl_nomi.endswith('.mp4'):
         fayl_nomi = fayl_nomi.replace('.avi', '').replace('.mov', '') + '.mp4'
@@ -185,7 +209,7 @@ def render_dynamic_video(fayl_nomi: str, mavzu: str, kadrlar: list, uploaded_ima
     
     # 1. Face-Swap tekshirish
     if reference_video and os.path.exists(reference_video) and first_img:
-        print("🎭 [Face-Swap]: Referans video va yuz rasmi orqali Face-Swap bajarilmoqda...")
+        print("[Face-Swap]: Referans video va yuz rasmi orqali Face-Swap bajarilmoqda...")
         if try_replicate_faceswap(source_image_path=first_img, target_video_path=reference_video, output_path=output_path):
             return fayl_nomi
             
@@ -194,7 +218,7 @@ def render_dynamic_video(fayl_nomi: str, mavzu: str, kadrlar: list, uploaded_ima
     if try_replicate_video(prompt_full, image_path=first_img, output_path=output_path):
         return fayl_nomi
 
-    # 2. Avtonom Kinematografik Python Dvigateli
+    # 3. Avtonom Kinematografik Python + AI Vision Dvigateli
     print(f"[Video Asbob]: {fayl_nomi} yaratilmoqda (Avtonom HD Dvigatel)...")
     
     width = 720 if vertical else 1280
@@ -215,9 +239,29 @@ def render_dynamic_video(fayl_nomi: str, mavzu: str, kadrlar: list, uploaded_ima
         for img_p in uploaded_images:
             if img_p and os.path.exists(img_p):
                 try:
-                    loaded_images.append(Image.open(img_p).convert("RGBA"))
+                    if img_p.lower().endswith(('.mp4', '.mov', '.avi')):
+                        vid_r = imageio.get_reader(img_p)
+                        frame_arr = vid_r.get_data(0)
+                        loaded_images.append(Image.fromarray(frame_arr).convert("RGBA"))
+                        vid_r.close()
+                    else:
+                        loaded_images.append(Image.open(img_p).convert("RGBA"))
                 except Exception as e:
                     print("Rasm ochishda xato:", e)
+                    
+    # Agar referans video yuklangan bo'lsa, undan ham jonli kadrlar olamiz
+    ref_frames = []
+    if reference_video and os.path.exists(reference_video):
+        try:
+            ref_reader = imageio.get_reader(reference_video)
+            for idx_f, arr in enumerate(ref_reader):
+                if idx_f % 2 == 0:
+                    ref_frames.append(Image.fromarray(arr).convert("RGBA"))
+                if len(ref_frames) >= 96:
+                    break
+            ref_reader.close()
+        except Exception as e:
+            print("Referans video o'qishda xato:", e)
                     
     font_badge = get_font(20, bold=True)
     font_title = get_font(30, bold=True)
@@ -231,25 +275,41 @@ def render_dynamic_video(fayl_nomi: str, mavzu: str, kadrlar: list, uploaded_ima
         macro_block_size=1
     )
     
+    # Agar referans video bo'lsa va faqat 1 ta kadr bo'lsa, jonli video kadrini ham qo'shamiz
+    if ref_frames and len(kadrlar) == 1:
+        kadrlar.append({"sarlavha": mavzu or "Maxsus Sahna", "matn": kadrlar[0].get("matn", "") if isinstance(kadrlar[0], dict) else ""})
+
     total_scenes = len(kadrlar)
     scene_images = []
     
-    # Har bir kadr uchun asosiy tasvirni tanlaymiz
+    # Har bir kadr uchun asosiy tasvirni tanlaymiz yoki AI orqali generatsiya qilamiz
     for idx, scene in enumerate(kadrlar):
-        if loaded_images:
-            # Agar foydalanuvchi rasm yuklagan bo'lsa, mosini olamiz
-            img = loaded_images[idx % len(loaded_images)]
+        if loaded_images and idx < len(loaded_images):
+            img = loaded_images[idx]
+        elif ref_frames and idx == total_scenes - 1:
+            img = None  # Oxirgi sahnada referans videoning jonli harakati ko'rsatiladi
         else:
-            img = None
+            viz_prompt = (scene.get('vizual') or scene.get('matn') or mavzu) if isinstance(scene, dict) else str(mavzu)
+            img = generate_free_ai_image(f"{mavzu}, {viz_prompt}", width=width, height=height)
+            if not img and loaded_images:
+                img = loaded_images[idx % len(loaded_images)]
         scene_images.append(img)
         
     for s_idx, scene in enumerate(kadrlar):
         s_title = scene.get('sarlavha', f"{s_idx+1}-Kadr") if isinstance(scene, dict) else f"{s_idx+1}-Kadr"
         s_text = scene.get('matn', '') if isinstance(scene, dict) else str(scene)
-        base_img = scene_images[s_idx]
+        scene_static_img = scene_images[s_idx]
         
         for f in range(frames_per_scene):
             t = f / float(frames_per_scene) # 0.0 dan 1.0 gacha
+            
+            # Agar ushbu sahna uchun statik rasm bo'lmasa va referans video kadrlari bo'lsa, jonli video oqimini qo'yamiz
+            if scene_static_img is not None:
+                base_img = scene_static_img
+            elif ref_frames:
+                base_img = ref_frames[(s_idx * frames_per_scene + f) % len(ref_frames)]
+            else:
+                base_img = None
             
             # 1. Asosiy fonni yaratamiz (Ken Burns zoom yoki gradient)
             frame_img = Image.new("RGBA", (width, height), (15, 23, 42, 255))
@@ -318,7 +378,7 @@ def render_dynamic_video(fayl_nomi: str, mavzu: str, kadrlar: list, uploaded_ima
             draw = ImageDraw.Draw(frame_img)
             
             # 3. Yuqori studiya belgisi (Badge)
-            badge_text = "🎬 TEMUR REJISSYOR • AI EXECUTIVE SUITE"
+            badge_text = "AI STUDIO • EXECUTIVE PRODUCTION"
             draw.rectangle([(width//2 - 220, 30), (width//2 + 220, 68)], fill=(15, 23, 42, 210), outline=(59, 130, 246, 255), width=1)
             draw.text((width//2, 49), badge_text, fill=(226, 232, 240), font=font_badge, anchor="mm")
             

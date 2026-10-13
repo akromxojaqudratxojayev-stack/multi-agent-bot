@@ -292,8 +292,8 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
             elif t_name == 'video_rolik_yaratish' and not created_excel:
                 try:
                     ref_vid = None
-                    if found_video_url and uploaded_images:
-                        print(f"📥 [Referans video]: {found_video_url} yuklab olinmoqda...")
+                    if found_video_url:
+                        print(f"[Referans video]: {found_video_url} yuklab olinmoqda...")
                         v_info = extract_video_from_url(found_video_url, download=True)
                         if v_info.get('video_path') and os.path.exists(v_info['video_path']):
                             ref_vid = v_info['video_path']
@@ -348,33 +348,87 @@ def process_agent_request(user_text, target_agent='director', uploaded_images=No
     return final_text, created_excel, created_video
 
 # =======================================================
-# FLASK WEB DASHBOARD & REST API
+# FLASK WEB DASHBOARD & REST API (FON REJIMI BILAN)
 # =======================================================
+JOBS_STORE = {}
+JOBS_LOCK = threading.Lock()
+
+@app.errorhandler(Exception)
+def handle_any_exception(e):
+    """Har qanday server xatosini HTML emas, JSON formatda qaytaradi (Unexpected token '<' oldini oladi)."""
+    code = getattr(e, 'code', 500)
+    return jsonify({'status': 'error', 'error': str(e)}), code
+
 @app.route('/')
 def dashboard():
     return render_template('index.html')
 
+def _background_worker(job_id, task_text, target_agent, uploaded_images):
+    try:
+        report, excel_file, video_file = process_agent_request(
+            task_text,
+            target_agent=target_agent,
+            uploaded_images=uploaded_images
+        )
+        with JOBS_LOCK:
+            JOBS_STORE[job_id] = {
+                'status': 'success',
+                'report': report,
+                'excel_file': excel_file,
+                'video_file': video_file
+            }
+    except Exception as e:
+        with JOBS_LOCK:
+            JOBS_STORE[job_id] = {
+                'status': 'error',
+                'error': str(e)
+            }
+
+@app.route('/api/job/<job_id>', methods=['GET'])
+def api_job_status(job_id):
+    with JOBS_LOCK:
+        job = JOBS_STORE.get(job_id)
+    if not job:
+        return jsonify({'status': 'error', 'error': 'Topshiriq topilmadi'}), 404
+    return jsonify(job)
+
 @app.route('/api/task', methods=['POST'])
 def api_task():
+    import time
     uploaded_images = []
     
-    if request.files:
+    # FormData (multipart/form-data) yoki JSON ikkalasini ham xatosiz o'qiymiz
+    if request.form or request.files:
         task_text = request.form.get('task', '').strip()
         target_agent = request.form.get('target_agent', 'director')
+        async_mode = request.form.get('async_mode', '') == '1'
         
         for file in request.files.getlist('files'):
             if file and file.filename:
-                safe_name = os.path.basename(file.filename)
+                safe_name = f"{int(time.time())}_{os.path.basename(file.filename)}"
                 save_path = os.path.join(UPLOADS_DIR, safe_name)
                 file.save(save_path)
                 uploaded_images.append(save_path)
     else:
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         task_text = data.get('task', '').strip()
         target_agent = data.get('target_agent', 'director')
+        async_mode = bool(data.get('async_mode', False))
         
     if not task_text and not uploaded_images:
         return jsonify({'status': 'error', 'error': 'Topshiriq matni yoki rasm kiritilmadi'}), 400
+        
+    if async_mode:
+        job_id = os.urandom(6).hex()
+        with JOBS_LOCK:
+            JOBS_STORE[job_id] = {'status': 'processing'}
+        t = threading.Thread(
+            target=_background_worker,
+            args=(job_id, task_text, target_agent, uploaded_images),
+            daemon=True
+        )
+        t.start()
+        return jsonify({'status': 'processing', 'job_id': job_id})
         
     try:
         report, excel_file, video_file = process_agent_request(
@@ -428,11 +482,11 @@ def api_download(filename):
         is_video = filename.endswith('.mp4')
         return send_from_directory(UPLOADS_DIR, filename, as_attachment=not is_video)
         
-    return "Fayl topilmadi", 404
+    return jsonify({'status': 'error', 'error': 'Fayl topilmadi'}), 404
 
 def run_web_server():
     port = int(os.environ.get("PORT", 8000))
-    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False, threaded=True)
 
 # =======================================================
 # TELEGRAM BOT TIZIMI

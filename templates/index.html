@@ -2,11 +2,11 @@
 <html lang="uz" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Executive Suite • Multi-Agent HQ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AI Executive Suite • Telegram HQ</title>
     <!-- PWA Settings -->
     <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#0b0f19">
+    <meta name="theme-color" content="#17212b">
     <link rel="apple-touch-icon" href="/static/icon.png">
     
     <!-- Tailwind CSS -->
@@ -17,13 +17,13 @@
             theme: {
                 extend: {
                     colors: {
-                        darkBg: '#090d16',
-                        cardBg: '#111827',
-                        borderBg: '#1f293d',
-                        brandBlue: '#2563eb',
-                        brandEmerald: '#10b981',
-                        brandPurple: '#8b5cf6',
-                        brandAmber: '#f59e0b',
+                        tgBg: '#0e1621',
+                        tgHeader: '#17212b',
+                        tgSidebar: '#17212b',
+                        tgIncoming: '#182533',
+                        tgOutgoing: '#2b5278',
+                        tgAccent: '#2aabee',
+                        tgBorder: '#101921',
                     }
                 }
             }
@@ -35,326 +35,417 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <style>
-        /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #0b0f19; }
-        ::-webkit-scrollbar-thumb { background: #1f293d; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #374151; }
-        
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+        html, body {
+            height: 100%;
+            height: 100dvh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0e1621;
+            color: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        /* Custom compact scrollbar */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
+
+        /* Long URL & word wrapping inside chat bubbles */
+        .bubble-text {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+        .bubble-text a {
+            color: #6ab3f3;
+            text-decoration: underline;
+        }
+        .bubble-text p {
+            margin-bottom: 0.4rem;
+        }
+        .bubble-text p:last-child {
+            margin-bottom: 0;
+        }
+        .bubble-text ul, .bubble-text ol {
+            padding-left: 1.2rem;
+            margin: 0.35rem 0;
+        }
+        .bubble-text li {
+            margin-bottom: 0.2rem;
+        }
+
+        /* Recording pulse animation */
         .pulse-record {
-            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            color: #ef4444 !important;
+            background-color: rgba(239, 68, 68, 0.18) !important;
+            animation: pulse-ring 1.4s infinite;
         }
         @keyframes pulse-ring {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            70% { transform: scale(1.05); box-shadow: 0 0 0 14px rgba(239, 68, 68, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
+
+        /* Auto-hide scrollbar for horizontal agent pills */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-[#090d16] text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-brandBlue selection:text-white">
+<body class="flex h-[100dvh] w-full overflow-hidden select-none sm:select-text">
 
-    <!-- TOP HEADER -->
-    <header class="border-b border-[#1f293d] bg-[#0d1322]/90 backdrop-blur-md sticky top-0 z-50 px-4 lg:px-8 py-3.5 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <i data-lucide="layers" class="w-5 h-5 text-white"></i>
-            </div>
-            <div>
-                <div class="flex items-center gap-2">
-                    <h1 class="font-bold text-lg tracking-tight text-white">AI EXECUTIVE SUITE</h1>
-                    <span class="text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> 24/7 ONLINE
-                    </span>
+    <!-- MOBILE BACKDROP FOR SIDEBAR DRAWER -->
+    <div id="drawerBackdrop" onclick="toggleSidebar(false)" class="fixed inset-0 bg-black/60 z-40 hidden lg:hidden backdrop-blur-xs transition-opacity"></div>
+
+    <!-- LEFT SIDEBAR (TELEGRAM DESKTOP CHAT LIST / MOBILE DRAWER) -->
+    <aside id="sidebarDrawer" class="fixed lg:static inset-y-0 left-0 z-50 w-[290px] sm:w-[320px] bg-tgSidebar border-r border-white/5 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-200 ease-out shrink-0">
+        
+        <!-- Sidebar Header -->
+        <div class="h-14 px-4 border-b border-white/5 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-[#2aabee] to-blue-600 flex items-center justify-center shadow-sm">
+                    <i data-lucide="send" class="w-4 h-4 text-white"></i>
                 </div>
-                <p class="text-xs text-slate-400">Avtonom Multi-Agent Jamoa Boshqaruv Markazi</p>
+                <div>
+                    <h1 class="font-bold text-sm text-white leading-tight">AI Executive HQ</h1>
+                    <p class="text-[11px] text-[#6c7883]">Multi-Agent Boshqaruv</p>
+                </div>
             </div>
-        </div>
-
-        <div class="flex items-center gap-3">
-            <!-- PWA Install Button (Auto-shows when eligible) -->
-            <button id="pwaInstallBtn" class="hidden bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-lg shadow-emerald-500/25 flex items-center gap-2 transition-all transform hover:scale-105">
-                <i data-lucide="download" class="w-4 h-4"></i>
-                <span>Ilovani O'rnatish (APK)</span>
+            <button onclick="toggleSidebar(false)" class="lg:hidden w-8 h-8 rounded-full hover:bg-white/5 flex items-center justify-center text-slate-400">
+                <i data-lucide="x" class="w-5 h-5"></i>
             </button>
+        </div>
 
-            <!-- Telegram Link -->
-            <a href="https://t.me/mening_agentim99_bot" target="_blank" class="bg-[#1f293d] hover:bg-slate-800 text-slate-200 text-xs font-medium px-3.5 py-2 rounded-xl border border-slate-700/60 flex items-center gap-2 transition-all">
-                <i data-lucide="send" class="w-3.5 h-3.5 text-sky-400"></i>
-                <span class="hidden sm:inline">Telegram Bot</span>
+        <!-- Scrollable Sidebar Content -->
+        <div class="flex-1 overflow-y-auto p-2.5 space-y-4">
+            
+            <!-- 1. XODIMLAR RO'YXATI (Telegram Chats Style) -->
+            <div>
+                <p class="px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#6c7883]">Jamoa Xodimlari</p>
+                <div class="space-y-1">
+                    <!-- Director -->
+                    <div id="card-director" onclick="switchAgent('director'); toggleSidebar(false);" class="agent-card p-2.5 rounded-xl bg-[#2b5278]/40 cursor-pointer hover:bg-white/5 transition-all flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-bold text-sm shrink-0 shadow">
+                            👑
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-semibold text-[13px] text-white truncate">Sardor (Bosh Direktor)</h3>
+                                <span class="text-[10px] text-[#6ab3f3] font-medium">FAOL</span>
+                            </div>
+                            <p class="text-[12px] text-[#8a9aa9] truncate">Barcha topshiriqlar va nazorat</p>
+                        </div>
+                    </div>
+
+                    <!-- Finance -->
+                    <div id="card-finance" onclick="switchAgent('finance'); toggleSidebar(false);" class="agent-card p-2.5 rounded-xl cursor-pointer hover:bg-white/5 transition-all flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow">
+                            📊
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-semibold text-[13px] text-white truncate">Javohir (Iqtisodchi)</h3>
+                                <span class="text-[10px] text-emerald-400 font-mono">.XLSX</span>
+                            </div>
+                            <p class="text-[12px] text-[#8a9aa9] truncate">Narxlar, smeta va Excel jadval</p>
+                        </div>
+                    </div>
+
+                    <!-- Creative -->
+                    <div id="card-creative" onclick="switchAgent('creative'); toggleSidebar(false);" class="agent-card p-2.5 rounded-xl cursor-pointer hover:bg-white/5 transition-all flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow">
+                            🎨
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-semibold text-[13px] text-white truncate">Madina (Kreativ)</h3>
+                                <span class="text-[10px] text-purple-400 font-mono">MATN</span>
+                            </div>
+                            <p class="text-[12px] text-[#8a9aa9] truncate">Reklama postlari va ssenariy</p>
+                        </div>
+                    </div>
+
+                    <!-- Video -->
+                    <div id="card-video" onclick="switchAgent('video'); toggleSidebar(false);" class="agent-card p-2.5 rounded-xl cursor-pointer hover:bg-white/5 transition-all flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow">
+                            🎬
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-semibold text-[13px] text-white truncate">Temur (Video & AI)</h3>
+                                <span class="text-[10px] text-sky-400 font-mono">.MP4</span>
+                            </div>
+                            <p class="text-[12px] text-[#8a9aa9] truncate">Ssilka tahlili, Face-Swap va Video</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. TEZKOR NAMUNALAR -->
+            <div>
+                <p class="px-2.5 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#6c7883]">Tezkor Topshiriqlar</p>
+                <div class="space-y-1.5">
+                    <button onclick="setPrompt('Qoramol va qo\'y go\'shti narxlari bo\'yicha bozor hisoboti tayyorlab, Excel (.xlsx) jadval qilib ber.'); toggleSidebar(false);" class="w-full text-left px-3 py-2 rounded-xl bg-tgBg/60 hover:bg-white/5 text-xs text-slate-200 border border-white/5 transition-all flex items-center justify-between">
+                        <span class="truncate">📊 Go'sht narxlari (Excel)</span>
+                        <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i>
+                    </button>
+                    <button onclick="setPrompt('Labo mashinasi va tezkor yetkazib berish xizmati bo\'yicha 3 kadrli reklama roligi yaratib, MP4 video qilib ber.'); toggleSidebar(false);" class="w-full text-left px-3 py-2 rounded-xl bg-tgBg/60 hover:bg-white/5 text-xs text-slate-200 border border-white/5 transition-all flex items-center justify-between">
+                        <span class="truncate">🎬 Labo reklama roligi (MP4)</span>
+                        <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i>
+                    </button>
+                    <button onclick="setPrompt('IT loyiha uchun oylik xarajatlar smetasini tuzib, Excel (.xlsx) fayl qilib ber.'); toggleSidebar(false);" class="w-full text-left px-3 py-2 rounded-xl bg-tgBg/60 hover:bg-white/5 text-xs text-slate-200 border border-white/5 transition-all flex items-center justify-between">
+                        <span class="truncate">💼 Xarajatlar smetasi (Excel)</span>
+                        <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 shrink-0"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. TAYYOR FAYLLAR OMBORI -->
+            <div>
+                <div class="px-2.5 pb-1.5 flex items-center justify-between">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-[#6c7883]">Tayyor Fayllar (.xlsx / .mp4)</span>
+                    <button onclick="loadFiles()" class="text-[#6ab3f3] hover:text-white text-xs flex items-center gap-1" title="Yangilash">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+                <div id="filesList" class="space-y-1.5 max-h-56 overflow-y-auto px-1">
+                    <p class="text-xs text-[#6c7883] italic text-center py-3">Hozircha fayllar yo'q</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Sidebar Bottom Footer -->
+        <div class="p-3 border-t border-white/5 flex items-center justify-between gap-2">
+            <a href="https://t.me/mening_agentim99_bot" target="_blank" class="flex-1 bg-[#2aabee]/15 hover:bg-[#2aabee]/25 text-[#2aabee] text-xs font-medium py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition-all">
+                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                <span>Telegram Botda ochish</span>
             </a>
+            <button id="pwaInstallBtn" class="hidden bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold py-2 px-3 rounded-xl flex items-center gap-1.5 shadow">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>APK</span>
+            </button>
         </div>
-    </header>
+    </aside>
 
-    <!-- MAIN DASHBOARD CONTENT -->
-    <main class="flex-1 max-w-[1600px] w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- MAIN TELEGRAM CHAT WINDOW -->
+    <section class="flex-1 flex flex-col h-[100dvh] min-w-0 bg-tgBg relative">
 
-        <!-- LEFT COLUMN: XODIMLAR STATUSI VA ROLLAR (4 cols on desktop) -->
-        <div class="lg:col-span-4 space-y-4">
-            
-            <div class="bg-[#111827] border border-[#1f293d] rounded-2xl p-5 shadow-xl">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                        <i data-lucide="users" class="w-4 h-4 text-brandBlue"></i>
-                        Xodimlar Jamoasi
-                    </h2>
-                    <span class="text-xs text-slate-500 font-mono">4 TA MUTAXASSIS</span>
+        <!-- TOP CHAT HEADER (Compact Telegram Style) -->
+        <header class="h-14 px-3 sm:px-5 bg-tgHeader border-b border-white/5 flex items-center justify-between shrink-0 z-20">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <!-- Hamburger menu on mobile -->
+                <button onclick="toggleSidebar(true)" class="lg:hidden w-9 h-9 rounded-full hover:bg-white/5 flex items-center justify-center text-slate-300 shrink-0">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+                
+                <!-- Active Agent Avatar -->
+                <div id="headerAvatar" onclick="toggleSidebar(true)" class="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-sm shadow shrink-0 cursor-pointer">
+                    👑
                 </div>
 
-                <div class="space-y-3">
-                    <!-- 1. Bosh Direktor -->
-                    <div id="card-director" onclick="switchAgent('director')" class="agent-card p-3.5 rounded-xl bg-[#090d16] border border-amber-500 ring-2 ring-amber-500/40 shadow-lg shadow-amber-500/10 cursor-pointer hover:scale-[1.01] transition-all flex items-start gap-3.5">
-                        <div class="w-10 h-10 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0">
-                            <i data-lucide="shield-check" class="w-5 h-5 text-amber-400"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center justify-between">
-                                <h3 class="font-semibold text-sm text-amber-300">Sardor (Bosh Direktor)</h3>
-                                <span class="text-[10px] text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full font-mono flex items-center gap-1">FAOL</span>
-                            </div>
-                            <p class="text-xs text-slate-400 mt-0.5">Topshiriqni jamoaga bo'ladi, sifatni tekshiradi, hisobotni tasdiqlaydi.</p>
-                        </div>
+                <!-- Active Agent Title & Online Status -->
+                <div class="min-w-0 cursor-pointer" onclick="toggleSidebar(true)">
+                    <div class="flex items-center gap-1.5">
+                        <h2 id="stageAgentTitle" class="font-semibold text-[14px] sm:text-[15px] text-white truncate">Sardor (Bosh Direktor)</h2>
+                        <span id="stageAgentBadge" class="hidden sm:inline-block text-[10px] bg-white/10 text-[#6ab3f3] px-1.5 py-0.5 rounded font-mono">BOSHLIQ</span>
                     </div>
-
-                    <!-- 2. Moliya Agenti -->
-                    <div id="card-finance" onclick="switchAgent('finance')" class="agent-card p-3.5 rounded-xl bg-[#090d16] border border-emerald-500/20 cursor-pointer hover:border-emerald-500/60 hover:scale-[1.01] transition-all flex items-start gap-3.5">
-                        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
-                            <i data-lucide="trending-up" class="w-5 h-5 text-emerald-400"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center justify-between">
-                                <h3 class="font-semibold text-sm text-emerald-300">Javohir (Bosh Iqtisodchi)</h3>
-                                <span class="text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full font-mono">EXCEL (.XLSX)</span>
-                            </div>
-                            <p class="text-xs text-slate-400 mt-0.5">Internetdan narxlarni izlaydi, tender smetasi va professional Excel tuzadi.</p>
-                        </div>
-                    </div>
-
-                    <!-- 3. Kreativ Agenti -->
-                    <div id="card-creative" onclick="switchAgent('creative')" class="agent-card p-3.5 rounded-xl bg-[#090d16] border border-purple-500/20 cursor-pointer hover:border-purple-500/60 hover:scale-[1.01] transition-all flex items-start gap-3.5">
-                        <div class="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center shrink-0">
-                            <i data-lucide="palette" class="w-5 h-5 text-purple-400"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center justify-between">
-                                <h3 class="font-semibold text-sm text-purple-300">Madina (Kreativ Dizayner)</h3>
-                                <span class="text-[10px] text-purple-400 bg-purple-400/10 px-2 py-0.5 rounded-full font-mono">PROMPTER</span>
-                            </div>
-                            <p class="text-xs text-slate-400 mt-0.5">Rolik ssenariylari, reklama postlari va fotorealistik Midjourney promptlar.</p>
-                        </div>
-                    </div>
-
-                    <!-- 4. Video & Dasturchi Agenti -->
-                    <div id="card-video" onclick="switchAgent('video')" class="agent-card p-3.5 rounded-xl bg-[#090d16] border border-blue-500/20 cursor-pointer hover:border-blue-500/60 hover:scale-[1.01] transition-all flex items-start gap-3.5">
-                        <div class="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center shrink-0">
-                            <i data-lucide="clapperboard" class="w-5 h-5 text-blue-400"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center justify-between">
-                                <h3 class="font-semibold text-sm text-blue-300">Temur (Video Rejissyor & IT)</h3>
-                                <span class="text-[10px] text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full font-mono">VIDEO / STORY</span>
-                            </div>
-                            <p class="text-xs text-slate-400 mt-0.5">Ssilkadan videolarni tahlil qilish, kadrma-kadr hikoya roliklar va IT tizimlar.</p>
-                        </div>
-                    </div>
+                    <p id="stageAgentSub" class="text-[11px] sm:text-[12px] text-[#2aabee] truncate">online • jamoa tayyor</p>
                 </div>
             </div>
 
-            <!-- TEZKOR SHABLONLAR (QUICK ACTIONS) -->
-            <div class="bg-[#111827] border border-[#1f293d] rounded-2xl p-5 shadow-xl">
-                <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
-                    <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
-                    Tezkor Topshiriqlar
-                </h2>
-                <div class="grid grid-cols-1 gap-2">
-                    <button onclick="setPrompt('Qoramol va qo\'y go\'shti narxlari bo\'yicha bozor hisoboti tayyorlab, donama-dona formatda Excel (.xlsx) faylini yuklab ber.')" class="text-left p-2.5 rounded-xl bg-[#090d16] hover:bg-slate-800 text-xs text-slate-300 border border-[#1f293d] transition-all flex items-center justify-between group">
-                        <span>📊 Go'sht narxlari va Excel jadval</span>
-                        <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-white transition-all"></i>
-                    </button>
-                    <button onclick="setPrompt('Labo mashinasi va tezkor yetkazib berish xizmati bo\'yicha 3 kadrli qiziqarli reklama roligi yaratib, haqiqiy MP4 video fayl qilib ber.')" class="text-left p-2.5 rounded-xl bg-[#090d16] hover:bg-slate-800 text-xs text-slate-300 border border-[#1f293d] transition-all flex items-center justify-between group">
-                        <span>🎬 Reklama roligi va tayyor MP4 video</span>
-                        <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-white transition-all"></i>
-                    </button>
-                    <button onclick="setPrompt('IT loyiha uchun oylik xarajatlar smetasini tuzib, to\'liq hisob-kitob qilib Excel fayl qilib ber.')" class="text-left p-2.5 rounded-xl bg-[#090d16] hover:bg-slate-800 text-xs text-slate-300 border border-[#1f293d] transition-all flex items-center justify-between group">
-                        <span>💼 Xarajatlar smetasi & Byudjet</span>
-                        <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-500 group-hover:text-white transition-all"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- FAYLLAR VA HISOBOTLAR OMBOXONASI -->
-            <div class="bg-[#111827] border border-[#1f293d] rounded-2xl p-5 shadow-xl">
-                <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                        <i data-lucide="folder-down" class="w-4 h-4 text-emerald-400"></i>
-                        Tayyor Fayllar & Videolar
-                    </h2>
-                    <button onclick="loadFiles()" class="text-slate-400 hover:text-white text-xs flex items-center gap-1">
-                        <i data-lucide="refresh-cw" class="w-3 h-3"></i>
-                    </button>
-                </div>
-                <div id="filesList" class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    <p class="text-xs text-slate-500 italic text-center py-4">Hozircha yangi fayllar yo'q</p>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- RIGHT / CENTER STAGE: BUYRUQ BERISH VA JONLI JAVOB OQIMI (8 cols on desktop) -->
-        <div class="lg:col-span-8 flex flex-col h-[750px] lg:h-[820px] bg-[#111827] border border-[#1f293d] rounded-2xl shadow-2xl overflow-hidden">
-            
-            <!-- STAGE HEADER -->
-            <div class="px-6 py-4 border-b border-[#1f293d] bg-[#0d1322]/60 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <span id="stageAgentDot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <span id="stageAgentTitle" class="text-sm font-semibold text-slate-200">Sardor (Bosh Direktor) bilan Muloqot</span>
-                            <span id="stageAgentBadge" class="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full font-mono">BOSHLIQ</span>
-                        </div>
-                        <p id="stageAgentSub" class="text-[11px] text-slate-400">Butun jamoani boshqaradi, topshiriqni taqsimlaydi va yakuniy sifatni tekshiradi</p>
-                    </div>
-                </div>
-                <button onclick="clearChat()" class="text-xs text-slate-400 hover:text-rose-400 flex items-center gap-1.5 transition-colors">
-                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                    <span>Tozalash</span>
+            <!-- Header Right Actions -->
+            <div class="flex items-center gap-1 shrink-0">
+                <button onclick="toggleSidebar(true)" class="lg:hidden px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-slate-300 flex items-center gap-1" title="Fayllar va Xodimlar">
+                    <i data-lucide="folder" class="w-4 h-4 text-[#2aabee]"></i>
+                    <span class="text-[11px]">Fayllar</span>
+                </button>
+                <button onclick="clearChat()" class="w-9 h-9 rounded-full hover:bg-white/5 flex items-center justify-center text-[#8a9aa9] hover:text-rose-400 transition-colors" title="Suhbatni tozalash">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
             </div>
+        </header>
 
-            <!-- MESSAGES & REPORT STREAM -->
-            <div id="chatFeed" class="flex-1 p-6 overflow-y-auto space-y-6">
-                <!-- Welcome greeting -->
-                <div class="flex gap-4 items-start">
-                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0">
-                        <i data-lucide="shield-check" class="w-5 h-5 text-amber-400"></i>
-                    </div>
-                    <div class="bg-[#090d16] border border-[#1f293d] rounded-2xl rounded-tl-sm p-5 max-w-2xl shadow-lg">
-                        <h4 class="text-sm font-bold text-amber-300 flex items-center gap-2">
-                            <span>Bosh Direktor</span>
-                            <span class="text-[10px] bg-slate-800 text-slate-400 font-mono px-2 py-0.5 rounded">HQ OPERATOR</span>
-                        </h4>
-                        <p class="text-sm text-slate-300 mt-2 leading-relaxed">
-                            Assalomu alaykum, hurmatli Rahbar! Butun jamoa (Moliya, Kreativ, Video va Dasturchilar) ishga to'liq shay holatda.
-                        </p>
-                        <p class="text-sm text-slate-400 mt-2 leading-relaxed">
-                            Siz menga pastdagi maydonga yozma ravishda yoki qizil <strong>Mikrofon</strong> tugmasini bosib <strong>ovozli buyruq</strong> berishingiz mumkin. Kerak bo'lsa qahramon yoki mahsulot <strong>rasmlarini</strong>, video ssilkalarni biriktiring — jamoamiz haqiqiy <strong>Excel (.xlsx)</strong> jadvallari va yuklab olinadigan <strong>Video roliklar (.mp4)</strong> tayyorlab beradi!
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- BOTTOM COMMAND BAR -->
-            <div class="p-4 border-t border-[#1f293d] bg-[#0d1322]/80 backdrop-blur-md">
-                
-                <!-- Status bar / loading progress -->
-                <div id="statusIndicator" class="hidden mb-3 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 flex items-center justify-between animate-pulse">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-blue-400"></i>
-                        <span id="statusText">Direktor topshiriqni tahlil qilmoqda...</span>
-                    </div>
-                    <span class="text-[10px] font-mono text-blue-400">ILTIMOS KUTING</span>
-                </div>
-
-                <!-- Bir nechta fayllar ko'rsatkichi (Multiple Previews) -->
-                <div id="mediaPreviewContainer" class="hidden mb-2.5 flex flex-wrap gap-2 items-center max-h-24 overflow-y-auto">
-                    <!-- Dinamik ravishda tanlangan rasmlar chip ko'rinishida chiqadi -->
-                </div>
-
-                <!-- Input form -->
-                <div class="flex items-end gap-2.5">
-                    
-                    <!-- File / Image / Video attach button (MULTIPLE TANLASH IMKONI) -->
-                    <input type="file" id="mediaUpload" accept="image/*,video/*,.jpg,.jpeg,.png,.webp,.mp4,.mov,.avi" multiple class="hidden" onchange="handleMediaSelect(event)">
-                    <button id="attachBtn" onclick="document.getElementById('mediaUpload').click()" title="Bir nechta rasm yoki video biriktirish (bosib yana qo'shishingiz mumkin)" class="relative w-13 h-13 p-3.5 rounded-2xl bg-[#1f293d] hover:bg-slate-700 text-slate-300 border border-slate-700/80 transition-all flex items-center justify-center shrink-0 transform active:scale-95">
-                        <i data-lucide="paperclip" class="w-5 h-5 text-slate-300"></i>
-                        <span id="attachCountBadge" class="hidden absolute -top-1.5 -right-1.5 bg-blue-500 text-white text-[10px] font-bold min-w-5 h-5 px-1 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/50 animate-bounce">0</span>
-                    </button>
-
-                    <!-- Voice Record Button (Centerpiece) -->
-                    <button id="voiceBtn" onclick="toggleVoiceRecording()" title="Ovozli buyruq berish (bosib turing yoki bosing)" class="w-13 h-13 p-3.5 rounded-2xl bg-gradient-to-tr from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-600 text-white shadow-lg shadow-red-500/20 transition-all flex items-center justify-center shrink-0 transform active:scale-95">
-                        <i id="micIcon" data-lucide="mic" class="w-6 h-6"></i>
-                    </button>
-
-                    <!-- Text input area -->
-                    <div class="flex-1 bg-[#090d16] border border-[#1f293d] focus-within:border-brandBlue rounded-2xl p-2 transition-all shadow-inner">
-                        <textarea id="taskInput" rows="2" placeholder="Topshiriq bering, video ssilka yoki matn yozing... (yoki mikrofondan ovozli ayting)" class="w-full bg-transparent text-sm text-slate-100 placeholder-slate-500 resize-none outline-none px-2 py-1"></textarea>
-                    </div>
-
-                    <!-- Send button -->
-                    <button id="sendBtn" onclick="sendTask()" class="w-13 h-13 p-3.5 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center shrink-0 transform active:scale-95">
-                        <i data-lucide="send" class="w-6 h-6"></i>
-                    </button>
-
-                </div>
-                
-                <div class="flex items-center justify-between text-[11px] text-slate-500 mt-2 px-1">
-                    <span>💡 Maslahat: Har bir hisobot uchun Excel fayl avtomatik tarzda yaratiladi.</span>
-                    <span id="recordingTimer" class="hidden text-rose-400 font-mono font-bold flex items-center gap-1">
-                        <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span> Yozilmoqda...
-                    </span>
-                </div>
-
-            </div>
-
+        <!-- MOBILE QUICK AGENT SWITCHER BAR (Horizontal Pills like Telegram Folders) -->
+        <div class="lg:hidden bg-tgHeader/90 border-b border-white/5 px-2.5 py-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0">
+            <button id="pill-director" onclick="switchAgent('director')" class="agent-pill px-3 py-1 rounded-full text-xs font-medium bg-[#2aabee] text-white shrink-0 transition-all">
+                👑 Direktor
+            </button>
+            <button id="pill-video" onclick="switchAgent('video')" class="agent-pill px-3 py-1 rounded-full text-xs font-medium bg-white/5 text-[#8a9aa9] hover:text-white shrink-0 transition-all">
+                🎬 Video (.mp4)
+            </button>
+            <button id="pill-finance" onclick="switchAgent('finance')" class="agent-pill px-3 py-1 rounded-full text-xs font-medium bg-white/5 text-[#8a9aa9] hover:text-white shrink-0 transition-all">
+                📊 Excel (.xlsx)
+            </button>
+            <button id="pill-creative" onclick="switchAgent('creative')" class="agent-pill px-3 py-1 rounded-full text-xs font-medium bg-white/5 text-[#8a9aa9] hover:text-white shrink-0 transition-all">
+                🎨 Kreativ
+            </button>
         </div>
 
-    </main>
+        <!-- CHAT MESSAGES STREAM -->
+        <div id="chatFeed" class="flex-1 overflow-y-auto px-2.5 sm:px-6 py-3 space-y-2.5">
+            <!-- Compact Welcome Message Bubble -->
+            <div class="flex items-end gap-2 max-w-[92%] sm:max-w-[75%]">
+                <div class="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-xs shrink-0 mb-0.5">
+                    👑
+                </div>
+                <div class="bg-tgIncoming rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13.5px] sm:text-[14px] text-slate-100 shadow-sm bubble-text">
+                    <div class="font-semibold text-xs text-amber-400 mb-1">Sardor • Bosh Direktor</div>
+                    <p class="text-slate-200 leading-snug">
+                        Assalomu alaykum! Topshirig'ingizni yozing, bir nechta <b>rasm/video (📎)</b> yoki <b>Instagram/YouTube ssilka</b> yuboring:
+                    </p>
+                    <ul class="text-xs text-slate-300 mt-1.5 space-y-0.5">
+                        <li>🎬 <b>Video so'rasangiz</b> — faqat tayyor <code>.mp4</code> video yaratiladi.</li>
+                        <li>📊 <b>Jadval/narx so'rasangiz</b> — faqat <code>.xlsx</code> Excel yaratiladi.</li>
+                        <li>✍️ <b>Maslahat/matn so'rasangiz</b> — faqat matn javob beriladi.</li>
+                    </ul>
+                    <div class="text-[10px] text-[#6c7883] text-right mt-1">online</div>
+                </div>
+            </div>
+        </div>
 
-    <!-- CLIENT SCRIPT & PWA HANDLERS -->
+        <!-- STATUS / LOADING BAR (Above Input Bar) -->
+        <div id="statusIndicator" class="hidden px-3.5 py-2 bg-[#182533] border-t border-white/5 text-xs text-[#6ab3f3] flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2 min-w-0">
+                <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-[#2aabee] shrink-0"></i>
+                <span id="statusText" class="truncate">Topshiriq bajarilmoqda...</span>
+            </div>
+            <span id="statusTimer" class="text-[11px] font-mono text-[#8a9aa9] shrink-0 ml-2">0s</span>
+        </div>
+
+        <!-- ATTACHED MEDIA PREVIEWS STRIP (Above Input Bar when files selected) -->
+        <div id="mediaPreviewContainer" class="hidden px-3 py-2 bg-[#17212b] border-t border-white/5 flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
+            <!-- Thumbnails rendered dynamically -->
+        </div>
+
+        <!-- TELEGRAM-STYLE BOTTOM MESSAGE INPUT BAR -->
+        <footer class="bg-tgHeader border-t border-white/5 px-2 sm:px-3 py-1.5 sm:py-2 flex items-end gap-1.5 sm:gap-2 shrink-0">
+            
+            <!-- 1. Paperclip Attachment Button (Left - exact Telegram position) -->
+            <input type="file" id="mediaUpload" accept="image/*,video/*,.jpg,.jpeg,.png,.webp,.mp4,.mov,.avi" multiple class="hidden" onchange="handleMediaSelect(event)">
+            <button id="attachBtn" onclick="document.getElementById('mediaUpload').click()" title="Rasm yoki video biriktirish" class="relative w-10 h-10 rounded-full hover:bg-white/5 text-[#8a9aa9] hover:text-slate-200 transition-colors flex items-center justify-center shrink-0">
+                <i data-lucide="paperclip" class="w-5 h-5"></i>
+                <span id="attachCountBadge" class="hidden absolute top-0.5 right-0.5 bg-[#2aabee] text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center shadow">0</span>
+            </button>
+
+            <!-- 2. Wide Clean Message Input (Center - takes full available width) -->
+            <div class="flex-1 min-w-0 bg-[#0e1621] rounded-2xl border border-white/5 focus-within:border-[#2aabee]/50 px-3 py-1.5 flex items-center transition-colors">
+                <textarea id="taskInput" rows="1" placeholder="Xabar yozing..." oninput="autoResizeTextarea(this)" class="w-full bg-transparent text-[14px] sm:text-[15px] text-white placeholder-[#6c7883] resize-none outline-none max-h-28 leading-5 py-0.5"></textarea>
+            </div>
+
+            <!-- 3. Voice Recording Button (Right - Telegram Microphone) -->
+            <button id="voiceBtn" onclick="toggleVoiceRecording()" title="Ovozli xabar" class="w-10 h-10 rounded-full hover:bg-white/5 text-[#8a9aa9] hover:text-slate-200 transition-all flex items-center justify-center shrink-0">
+                <i id="micIcon" data-lucide="mic" class="w-5 h-5"></i>
+            </button>
+
+            <!-- 4. Telegram Blue Send Button -->
+            <button id="sendBtn" onclick="sendTask()" title="Yuborish" class="w-10 h-10 rounded-full bg-[#2aabee] hover:bg-[#229ed9] text-white shadow-md flex items-center justify-center shrink-0 transition-transform active:scale-95">
+                <i data-lucide="send" class="w-4 h-4 ml-0.5"></i>
+            </button>
+
+        </footer>
+
+    </section>
+
+    <!-- CLIENT JAVASCRIPT -->
     <script>
         lucide.createIcons();
 
-        // 1. PWA INSTALLATION PROMPT
+        // Sidebar drawer toggle for mobile
+        function toggleSidebar(open) {
+            const drawer = document.getElementById('sidebarDrawer');
+            const backdrop = document.getElementById('drawerBackdrop');
+            if (open) {
+                drawer.classList.remove('-translate-x-full');
+                backdrop.classList.remove('hidden');
+            } else {
+                drawer.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+            }
+        }
+
+        // Auto-resize textarea like Telegram (1 to 4 lines)
+        function autoResizeTextarea(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 112) + 'px';
+        }
+
+        // Safe JSON Fetch helper: NEVER throws "Unexpected token '<'"
+        async function safeJsonFetch(url, options = {}) {
+            const res = await fetch(url, options);
+            const rawText = await res.text();
+            try {
+                return JSON.parse(rawText);
+            } catch (e) {
+                if (res.status === 502 || res.status === 504 || res.status === 524) {
+                    throw new Error("Serverda video tayyorlash biroz ko'proq vaqt oldi. Iltimos, 'Fayllar' bo'limini tekshiring yoki qayta urinib ko'ring.");
+                }
+                if (res.status === 413) {
+                    throw new Error("Yuklangan fayl hajmi juda katta.");
+                }
+                throw new Error(`Server javobi kutilmagan formatda (Status ${res.status}). Iltimos, sahifani yangilang.`);
+            }
+        }
+
+        // 1. PWA INSTALLATION
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
             const btn = document.getElementById('pwaInstallBtn');
-            btn.classList.remove('hidden');
+            if (btn) btn.classList.remove('hidden');
         });
 
-        document.getElementById('pwaInstallBtn').addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    document.getElementById('pwaInstallBtn').classList.add('hidden');
+        const pwaBtn = document.getElementById('pwaInstallBtn');
+        if (pwaBtn) {
+            pwaBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') pwaBtn.classList.add('hidden');
+                    deferredPrompt = null;
                 }
-                deferredPrompt = null;
-            }
-        });
-
-        // Register Service Worker
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/static/sw.js').catch(err => console.log(err));
+            });
         }
 
-        // 2. AGENT CONFIG & SWITCHER
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+        }
+
+        // 2. AGENT SWITCHER
         let currentAgent = 'director';
 
         const agentConfig = {
             director: {
                 name: 'Sardor (Bosh Direktor)',
                 badge: 'BOSHLIQ',
-                sub: 'Butun jamoani boshqaradi, topshiriqni taqsimlaydi va yakuniy sifatni tekshiradi',
-                color: 'amber'
+                sub: 'online • barcha topshiriqlarni boshqaradi',
+                avatar: '👑',
+                grad: 'from-amber-400 to-orange-500'
             },
             finance: {
                 name: 'Javohir (Bosh Iqtisodchi)',
-                badge: 'MOLIYA & BOZOR',
-                sub: 'Sardor nazorati ostida: Bozor narxlari, smeta va Excel (.xlsx) hisobotlari',
-                color: 'emerald'
+                badge: 'EXCEL (.XLSX)',
+                sub: 'online • narxlar, smeta va Excel jadvallar',
+                avatar: '📊',
+                grad: 'from-emerald-400 to-teal-600'
             },
             creative: {
                 name: 'Madina (Kreativ Dizayner)',
-                badge: 'KREATIV & BREND',
-                sub: 'Sardor nazorati ostida: Reklama matnlari, brending va vizual promptlar',
-                color: 'purple'
+                badge: 'MATN & POST',
+                sub: 'online • reklama matnlari va g\'oyalar',
+                avatar: '🎨',
+                grad: 'from-purple-500 to-pink-500'
             },
             video: {
-                name: 'Temur (Video Rejissyor & IT)',
-                badge: 'VIDEO & HIKOYA',
-                sub: 'Sardor nazorati ostida: Video ssilka tahlili, kadrma-kadr roliklar va IT',
-                color: 'blue'
+                name: 'Temur (Video Rejissyor & AI)',
+                badge: 'VIDEO (.MP4)',
+                sub: 'online • ssilka tahlili va AI video roliklar',
+                avatar: '🎬',
+                grad: 'from-blue-500 to-indigo-600'
             }
         };
 
@@ -362,46 +453,51 @@
             currentAgent = agentId;
             const cfg = agentConfig[agentId];
 
-            // Kartochkalar atrofidagi ringni yangilash
+            // Update desktop cards
             document.querySelectorAll('.agent-card').forEach(c => {
-                c.classList.remove('ring-2', 'ring-amber-500/40', 'ring-emerald-500/40', 'ring-purple-500/40', 'ring-blue-500/40');
+                c.classList.remove('bg-[#2b5278]/40');
             });
             const activeCard = document.getElementById(`card-${agentId}`);
-            if (activeCard) {
-                activeCard.classList.add('ring-2', `ring-${cfg.color}-500/40`);
+            if (activeCard) activeCard.classList.add('bg-[#2b5278]/40');
+
+            // Update mobile pills
+            document.querySelectorAll('.agent-pill').forEach(p => {
+                p.className = "agent-pill px-3 py-1 rounded-full text-xs font-medium bg-white/5 text-[#8a9aa9] hover:text-white shrink-0 transition-all";
+            });
+            const activePill = document.getElementById(`pill-${agentId}`);
+            if (activePill) {
+                activePill.className = "agent-pill px-3 py-1 rounded-full text-xs font-medium bg-[#2aabee] text-white shrink-0 transition-all shadow";
             }
 
-            // Sarlavhani yangilash
-            document.getElementById('stageAgentTitle').innerText = `${cfg.name} bilan Muloqot`;
+            // Update Header
+            document.getElementById('stageAgentTitle').innerText = cfg.name;
             document.getElementById('stageAgentBadge').innerText = cfg.badge;
             document.getElementById('stageAgentSub').innerText = cfg.sub;
+            const headerAv = document.getElementById('headerAvatar');
+            headerAv.innerText = cfg.avatar;
+            headerAv.className = `w-9 h-9 rounded-full bg-gradient-to-br ${cfg.grad} flex items-center justify-center text-sm shadow shrink-0 cursor-pointer`;
 
-            // Xabarlar panelida bildirishnoma
+            // Small system pill in chat
             const feed = document.getElementById('chatFeed');
             const notice = document.createElement('div');
-            notice.className = "p-3 rounded-xl bg-[#0d1322] border border-[#1f293d] text-xs text-center text-slate-300 shadow-sm";
-            notice.innerHTML = `🚪 <strong>${cfg.name}</strong> xonasiga kirdingiz. <em>(Direktor Sardor nazorati ostida ishlaydi)</em>`;
+            notice.className = "flex justify-center my-1.5";
+            notice.innerHTML = `<span class="px-3 py-1 rounded-full bg-[#182533]/90 text-[11px] text-[#8a9aa9]">${cfg.avatar} <b>${cfg.name}</b> tanlandi</span>`;
             feed.appendChild(notice);
             feed.scrollTop = feed.scrollHeight;
-            lucide.createIcons();
         }
 
-        // 3. MULTI-MEDIA HANDLER (BIR NECHTA RASM VA VIDEO)
+        // 3. MULTI-MEDIA ATTACHMENT HANDLER
         let attachedFiles = [];
 
         function handleMediaSelect(e) {
             const files = Array.from(e.target.files);
             if (!files.length) return;
-
             files.forEach(f => {
-                // Dublikat bo'lmasligi uchun nomi va hajmini solishtiramiz
-                if (!attachedFiles.some(existing => existing.name === f.name && existing.size === f.size)) {
+                if (!attachedFiles.some(ex => ex.name === f.name && ex.size === f.size)) {
                     attachedFiles.push(f);
                 }
             });
-
             renderMediaPreviews();
-            // Inputni tozalaymiz, shunda foydalanuvchi xohlagancha yana bosib yangi fayllar qo'sha oladi
             e.target.value = '';
         }
 
@@ -420,7 +516,7 @@
         function renderMediaPreviews() {
             const container = document.getElementById('mediaPreviewContainer');
             const badge = document.getElementById('attachCountBadge');
-            
+
             if (attachedFiles.length === 0) {
                 container.classList.add('hidden');
                 container.innerHTML = '';
@@ -434,110 +530,105 @@
             }
 
             container.classList.remove('hidden');
-            let itemsHtml = attachedFiles.map((file, idx) => {
+            let html = attachedFiles.map((file, idx) => {
                 const isImg = file.type.startsWith('image');
-                const isVid = file.type.startsWith('video');
-                const objectUrl = isImg ? URL.createObjectURL(file) : '';
-
+                const url = isImg ? URL.createObjectURL(file) : '';
                 return `
-                    <div class="relative group p-1.5 rounded-2xl bg-slate-800/90 border border-slate-700/80 flex items-center gap-2 text-xs text-slate-200 shadow-md hover:border-blue-500/50 transition-all">
+                    <div class="relative flex items-center gap-2 bg-[#0e1621] border border-white/10 rounded-xl p-1.5 pr-2 shrink-0">
                         ${isImg ? `
-                            <img src="${objectUrl}" class="w-10 h-10 rounded-xl object-cover border border-slate-700 bg-slate-900 shrink-0" alt="${file.name}">
+                            <img src="${url}" class="w-9 h-9 rounded-lg object-cover shrink-0">
                         ` : `
-                            <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
-                                <i data-lucide="video" class="w-5 h-5"></i>
+                            <div class="w-9 h-9 rounded-lg bg-[#2aabee]/20 flex items-center justify-center text-[#2aabee] shrink-0">
+                                <i data-lucide="video" class="w-4 h-4"></i>
                             </div>
                         `}
-                        <div class="min-w-0 pr-1">
-                            <p class="font-medium truncate max-w-[110px] sm:max-w-[150px] text-slate-200 text-xs" title="${file.name}">${file.name}</p>
-                            <p class="text-[10px] text-slate-400">${(file.size / 1024).toFixed(0)} KB • ${isImg ? 'Rasm' : (isVid ? 'Video' : 'Fayl')}</p>
+                        <div class="max-w-[95px]">
+                            <p class="text-[11px] text-slate-200 truncate">${file.name}</p>
+                            <p class="text-[10px] text-[#6c7883]">${(file.size / 1024).toFixed(0)} KB</p>
                         </div>
-                        <button onclick="removeMedia(${idx})" class="w-6 h-6 rounded-full bg-slate-700/80 hover:bg-rose-500 text-slate-300 hover:text-white transition-all flex items-center justify-center shrink-0 ml-1" title="O'chirish">
-                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                        <button onclick="removeMedia(${idx})" class="w-5 h-5 rounded-full bg-white/10 hover:bg-rose-500 text-slate-300 hover:text-white flex items-center justify-center">
+                            <i data-lucide="x" class="w-3 h-3"></i>
                         </button>
                     </div>
                 `;
             }).join('');
 
-            // Yana qo'shish tugmasi
-            itemsHtml += `
-                <button onclick="document.getElementById('mediaUpload').click()" class="h-13 px-3.5 py-2 rounded-2xl border-2 border-dashed border-slate-700 hover:border-blue-500 bg-slate-900/60 hover:bg-slate-800 text-xs text-slate-300 hover:text-blue-300 transition-all flex items-center gap-2 shrink-0">
-                    <i data-lucide="plus" class="w-4 h-4 text-blue-400"></i>
-                    <span>Yana rasm/video qo'shish</span>
+            html += `
+                <button onclick="document.getElementById('mediaUpload').click()" class="h-11 px-3 rounded-xl border border-dashed border-[#2aabee]/50 text-xs text-[#2aabee] hover:bg-[#2aabee]/10 flex items-center gap-1 shrink-0">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>Yana qo'shish</span>
                 </button>
             `;
-
-            container.innerHTML = itemsHtml;
+            container.innerHTML = html;
             lucide.createIcons();
         }
 
-        // Drag & Drop va Clipboard Paste (Ctrl+V) qo'llab-quvvatlash
+        // Paste & Drag-Drop support
         window.addEventListener('DOMContentLoaded', () => {
             const taskInput = document.getElementById('taskInput');
             if (!taskInput) return;
-            const dropArea = taskInput.parentElement;
-
-            ['dragenter', 'dragover'].forEach(name => {
-                dropArea.addEventListener(name, (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    dropArea.classList.add('border-blue-500', 'bg-blue-950/20');
-                }, false);
-            });
-
-            ['dragleave', 'drop'].forEach(name => {
-                dropArea.addEventListener(name, (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    dropArea.classList.remove('border-blue-500', 'bg-blue-950/20');
-                }, false);
-            });
-
-            dropArea.addEventListener('drop', (e) => {
-                const dt = e.dataTransfer;
-                const files = Array.from(dt.files);
-                if (files.length) {
-                    files.forEach(f => {
-                        if (!attachedFiles.some(existing => existing.name === f.name && existing.size === f.size)) {
-                            attachedFiles.push(f);
-                        }
-                    });
-                    renderMediaPreviews();
-                }
-            });
 
             taskInput.addEventListener('paste', (e) => {
                 const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
                 if (!items) return;
-                let foundImage = false;
+                let added = false;
                 for (let i = 0; i < items.length; i++) {
-                    const item = items[i];
-                    if (item.kind === 'file' && item.type.startsWith('image/')) {
-                        const blob = item.getAsFile();
-                        const newFile = new File([blob], `rasm_${Date.now()}.png`, { type: blob.type });
-                        attachedFiles.push(newFile);
-                        foundImage = true;
+                    if (items[i].kind === 'file') {
+                        const blob = items[i].getAsFile();
+                        if (blob) {
+                            attachedFiles.push(new File([blob], `media_${Date.now()}_${i}.png`, { type: blob.type }));
+                            added = true;
+                        }
                     }
                 }
-                if (foundImage) {
-                    renderMediaPreviews();
-                }
+                if (added) renderMediaPreviews();
             });
         });
 
         function setPrompt(text) {
             const input = document.getElementById('taskInput');
             input.value = text;
+            autoResizeTextarea(input);
             input.focus();
         }
 
         function clearChat() {
             document.getElementById('chatFeed').innerHTML = `
-                <div class="p-4 text-xs text-slate-500 text-center italic">Suhbat tarixi tozalandi. Yangi topshiriq bering.</div>
+                <div class="flex justify-center my-4">
+                    <span class="px-3 py-1 rounded-full bg-[#182533] text-xs text-[#8a9aa9]">Suhbat tozalandi</span>
+                </div>
             `;
         }
 
-        // 4. SEND TEXT & MEDIA TASK
+        // 4. SEND TASK WITH ASYNC POLLING (NEVER TIMES OUT!)
+        let loadingInterval = null;
+
+        function showLoading(msg) {
+            const ind = document.getElementById('statusIndicator');
+            const txt = document.getElementById('statusText');
+            const tmr = document.getElementById('statusTimer');
+            txt.innerText = msg;
+            ind.classList.remove('hidden');
+            document.getElementById('sendBtn').disabled = true;
+
+            let sec = 0;
+            tmr.innerText = '0s';
+            if (loadingInterval) clearInterval(loadingInterval);
+            loadingInterval = setInterval(() => {
+                sec++;
+                tmr.innerText = `${sec}s`;
+            }, 1000);
+        }
+
+        function hideLoading() {
+            document.getElementById('statusIndicator').classList.add('hidden');
+            document.getElementById('sendBtn').disabled = false;
+            if (loadingInterval) {
+                clearInterval(loadingInterval);
+                loadingInterval = null;
+            }
+        }
+
         async function sendTask() {
             const input = document.getElementById('taskInput');
             const text = input.value.trim();
@@ -546,139 +637,149 @@
             const formData = new FormData();
             formData.append('task', text);
             formData.append('target_agent', currentAgent);
+            formData.append('async_mode', '1');
+
+            const previewUrls = [];
             attachedFiles.forEach(file => {
                 formData.append('files', file);
+                if (file.type.startsWith('image')) {
+                    previewUrls.push(URL.createObjectURL(file));
+                }
             });
 
-            let displayMsg = text;
-            if (attachedFiles.length > 0) {
-                const names = attachedFiles.map(f => f.name).join(', ');
-                displayMsg = (text ? text + "\n\n" : "") + `📎 [Biriktirilgan media fayllar (${attachedFiles.length} ta): ${names}]`;
-            }
+            const fileCount = attachedFiles.length;
+            appendUserMessage(text, previewUrls, fileCount);
 
-            appendUserMessage(displayMsg);
             input.value = '';
+            input.style.height = 'auto';
             clearAllMedia();
 
             const cfg = agentConfig[currentAgent];
-            showLoading(`${cfg.name} topshiriq ustida ishlamoqda (Sardor nazoratida)...`);
+            showLoading(`${cfg.name} ishlamoqda...`);
 
             try {
-                const res = await fetch('/api/task', {
+                const startData = await safeJsonFetch('/api/task', {
                     method: 'POST',
                     body: formData
                 });
-                const data = await res.json();
-                hideLoading();
 
-                if (data.status === 'success') {
-                    appendDirectorResponse(data.report, data.excel_file, data.video_file);
-                    loadFiles();
+                if (startData.status === 'processing' && startData.job_id) {
+                    // Poll background job every 2 seconds
+                    const jobId = startData.job_id;
+                    while (true) {
+                        await new Promise(r => setTimeout(r, 2000));
+                        const jobData = await safeJsonFetch(`/api/job/${jobId}`);
+                        if (jobData.status === 'processing') {
+                            continue;
+                        }
+                        hideLoading();
+                        if (jobData.status === 'success') {
+                            appendDirectorResponse(jobData.report, jobData.excel_file, jobData.video_file);
+                            loadFiles();
+                        } else {
+                            appendError(jobData.error || "Topshiriqni bajarishda xatolik yuz berdi.");
+                        }
+                        break;
+                    }
                 } else {
-                    appendError(data.error || "Noma'lum xatolik yuz berdi");
+                    hideLoading();
+                    if (startData.status === 'success') {
+                        appendDirectorResponse(startData.report, startData.excel_file, startData.video_file);
+                        loadFiles();
+                    } else {
+                        appendError(startData.error || "Xatolik yuz berdi");
+                    }
                 }
             } catch (err) {
                 hideLoading();
-                appendError("Server bilan bog'lanishda xatolik: " + err.message);
+                appendError(err.message);
             }
         }
 
-        // 4. VOICE RECORDING (MediaRecorder API)
+        // 5. VOICE RECORDING
         let mediaRecorder;
         let audioChunks = [];
         let isRecording = false;
 
         async function toggleVoiceRecording() {
             const voiceBtn = document.getElementById('voiceBtn');
-            const micIcon = document.getElementById('micIcon');
-            const timer = document.getElementById('recordingTimer');
-
             if (!isRecording) {
-                // START RECORDING
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     mediaRecorder = new MediaRecorder(stream);
                     audioChunks = [];
-
                     mediaRecorder.ondataavailable = e => {
                         if (e.data.size > 0) audioChunks.push(e.data);
                     };
-
                     mediaRecorder.onstop = async () => {
                         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                         uploadVoice(audioBlob);
                     };
-
                     mediaRecorder.start();
                     isRecording = true;
                     voiceBtn.classList.add('pulse-record');
-                    timer.classList.remove('hidden');
                 } catch (err) {
-                    alert("Mikrofondan foydalanishga ruxsat berilmadi: " + err.message);
+                    appendError("Mikrofonga ruxsat berilmadi: " + err.message);
                 }
             } else {
-                // STOP RECORDING
                 mediaRecorder.stop();
                 isRecording = false;
                 voiceBtn.classList.remove('pulse-record');
-                timer.classList.add('hidden');
-                // Stop all tracks
                 mediaRecorder.stream.getTracks().forEach(track => track.stop());
             }
         }
 
         async function uploadVoice(blob) {
-            appendUserMessage("🎙️ [Ovozli topshiriq yuborildi]");
-            showLoading("Ovoz tahlil qilinmoqda va jamoa ishlamoqda...");
-
+            appendUserMessage("🎙️ Ovozli xabar", [], 0);
+            showLoading("Ovozli topshiriq bajarilmoqda...");
             const formData = new FormData();
             formData.append('audio', blob, 'voice.webm');
-
             try {
-                const res = await fetch('/api/voice', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await res.json();
+                const data = await safeJsonFetch('/api/voice', { method: 'POST', body: formData });
                 hideLoading();
-
                 if (data.status === 'success') {
                     appendDirectorResponse(data.report, data.excel_file, data.video_file);
                     loadFiles();
                 } else {
-                    appendError(data.error || "Ovozni tushunishda xatolik");
+                    appendError(data.error || "Ovozni tahlil qilishda xatolik");
                 }
             } catch (err) {
                 hideLoading();
-                appendError("Ovoz yuborishda xatolik: " + err.message);
+                appendError(err.message);
             }
         }
 
-        // 5. DOM HELPERS
-        function showLoading(msg) {
-            document.getElementById('statusText').innerText = msg;
-            document.getElementById('statusIndicator').classList.remove('hidden');
-            document.getElementById('sendBtn').disabled = true;
-            document.getElementById('voiceBtn').disabled = true;
+        // 6. CHAT MESSAGE RENDERERS (TELEGRAM BUBBLE FORMAT)
+        function getNowTime() {
+            const d = new Date();
+            return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
         }
 
-        function hideLoading() {
-            document.getElementById('statusIndicator').classList.add('hidden');
-            document.getElementById('sendBtn').disabled = false;
-            document.getElementById('voiceBtn').disabled = false;
+        function escapeHtml(str) {
+            return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
 
-        function appendUserMessage(msg) {
+        function appendUserMessage(msg, imageUrls = [], totalFiles = 0) {
             const feed = document.getElementById('chatFeed');
             const el = document.createElement('div');
-            el.className = "flex gap-4 items-start justify-end";
+            el.className = "flex justify-end";
+
+            let mediaGrid = '';
+            if (imageUrls.length > 0) {
+                const imgs = imageUrls.map(u => `<img src="${u}" class="w-24 h-24 sm:w-28 sm:h-28 object-cover rounded-xl border border-white/10">`).join('');
+                mediaGrid = `<div class="flex flex-wrap gap-1.5 mb-1.5">${imgs}</div>`;
+            } else if (totalFiles > 0) {
+                mediaGrid = `<div class="text-xs text-sky-200 mb-1 flex items-center gap-1"><i data-lucide="paperclip" class="w-3.5 h-3.5"></i> ${totalFiles} ta fayl biriktirildi</div>`;
+            }
+
             el.innerHTML = `
-                <div class="bg-blue-600/20 border border-blue-500/30 rounded-2xl rounded-tr-sm p-4 max-w-xl text-slate-100 text-sm shadow-md">
-                    <p class="font-semibold text-xs text-blue-300 mb-1">Siz (Rahbar)</p>
-                    <p class="whitespace-pre-wrap">${msg}</p>
-                </div>
-                <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 shadow-md">
-                    <i data-lucide="user" class="w-4 h-4 text-white"></i>
+                <div class="bg-tgOutgoing rounded-2xl rounded-br-sm px-3.5 py-2 max-w-[85%] sm:max-w-[70%] text-white shadow-sm bubble-text">
+                    ${mediaGrid}
+                    ${msg ? `<div class="text-[14px] leading-snug whitespace-pre-wrap">${escapeHtml(msg)}</div>` : ''}
+                    <div class="text-[10px] text-[#7ea8ca] text-right mt-1 flex items-center justify-end gap-1">
+                        <span>${getNowTime()}</span>
+                        <span>✓✓</span>
+                    </div>
                 </div>
             `;
             feed.appendChild(el);
@@ -688,60 +789,45 @@
 
         function appendDirectorResponse(reportMarkdown, excelFile, videoFile) {
             const feed = document.getElementById('chatFeed');
+            const cfg = agentConfig[currentAgent];
             const el = document.createElement('div');
-            el.className = "flex gap-4 items-start";
-            
-            let downloadCard = '';
+            el.className = "flex items-end gap-2 max-w-[94%] sm:max-w-[78%]";
+
+            let excelHtml = '';
             if (excelFile) {
-                downloadCard = `
-                    <div class="mt-4 p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                excelHtml = `
+                    <div class="mt-2.5 p-2.5 rounded-xl bg-[#0e1621] border border-emerald-500/30 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
                                 <i data-lucide="file-spreadsheet" class="w-5 h-5 text-emerald-400"></i>
                             </div>
-                            <div>
-                                <p class="text-xs font-bold text-emerald-300">${excelFile}</p>
-                                <p class="text-[11px] text-slate-400">Haqiqiy Excel formati (.xlsx)</p>
+                            <div class="min-w-0">
+                                <p class="text-xs font-semibold text-emerald-300 truncate">${excelFile}</p>
+                                <p class="text-[10px] text-[#8a9aa9]">Excel jadvali (.xlsx)</p>
                             </div>
                         </div>
-                        <a href="/api/download/${excelFile}" download class="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition-all shadow-md shadow-emerald-500/20">
+                        <a href="/api/download/${excelFile}" download class="bg-emerald-500 hover:bg-emerald-600 text-white font-medium text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 shrink-0">
                             <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                            <span>Yuklab Olish</span>
+                            <span>Yuklash</span>
                         </a>
                     </div>
                 `;
             }
 
-            let videoCard = '';
+            let videoHtml = '';
             if (videoFile) {
-                videoCard = `
-                    <div class="mt-4 p-4 rounded-xl bg-blue-950/40 border border-blue-500/40 shadow-xl space-y-3">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                                    <i data-lucide="clapperboard" class="w-4 h-4 text-blue-400"></i>
-                                </div>
-                                <div>
-                                    <p class="text-xs font-bold text-blue-300">${videoFile}</p>
-                                    <p class="text-[10px] text-slate-400">Temur Rejissyor: Haqiqiy HD Video Rolik (.mp4)</p>
-                                </div>
-                            </div>
-                            <span class="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-mono">TAYYOR</span>
-                        </div>
-                        
-                        <!-- Video Player -->
-                        <div class="rounded-xl overflow-hidden bg-black/90 border border-slate-800 shadow-inner flex justify-center">
-                            <video controls playsinline preload="metadata" class="w-full max-h-96 rounded-xl" style="background:#000;">
+                videoHtml = `
+                    <div class="mt-2.5 p-2.5 rounded-xl bg-[#0e1621] border border-[#2aabee]/30 space-y-2">
+                        <div class="rounded-lg overflow-hidden bg-black flex justify-center">
+                            <video controls playsinline preload="metadata" class="w-full max-h-80 rounded-lg">
                                 <source src="/api/download/${videoFile}" type="video/mp4">
-                                Brauzeringiz videoni qo'llab-quvvatlamaydi.
                             </video>
                         </div>
-                        
-                        <!-- Video Download Button -->
-                        <div class="flex justify-end pt-1">
-                            <a href="/api/download/${videoFile}" download="${videoFile}" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-md shadow-blue-500/25">
-                                <i data-lucide="download" class="w-4 h-4"></i>
-                                <span>Videoni Yuklab Olish (.mp4)</span>
+                        <div class="flex items-center justify-between gap-2 pt-0.5">
+                            <span class="text-[11px] text-[#8a9aa9] truncate">${videoFile}</span>
+                            <a href="/api/download/${videoFile}" download="${videoFile}" class="bg-[#2aabee] hover:bg-[#229ed9] text-white font-medium text-xs px-3 py-1.5 rounded-lg flex items-center gap-1.5 shrink-0">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                                <span>Videoni yuklash</span>
                             </a>
                         </div>
                     </div>
@@ -749,21 +835,17 @@
             }
 
             el.innerHTML = `
-                <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-md">
-                    <i data-lucide="shield-check" class="w-5 h-5 text-amber-400"></i>
+                <div class="w-7 h-7 rounded-full bg-gradient-to-br ${cfg.grad} flex items-center justify-center text-xs shrink-0 mb-0.5">
+                    ${cfg.avatar}
                 </div>
-                <div class="bg-[#090d16] border border-[#1f293d] rounded-2xl rounded-tl-sm p-5 max-w-3xl shadow-xl flex-1">
-                    <div class="flex items-center justify-between mb-2">
-                        <h4 class="text-sm font-bold text-amber-300 flex items-center gap-2">
-                            <span>Direktor Xulosasi</span>
-                            <span class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-mono">TASDIQLANDI</span>
-                        </h4>
-                    </div>
-                    <div class="text-sm text-slate-200 leading-relaxed prose prose-invert max-w-none">
+                <div class="bg-tgIncoming rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13.5px] sm:text-[14px] text-slate-100 shadow-sm flex-1 min-w-0 bubble-text">
+                    <div class="font-semibold text-xs text-[#6ab3f3] mb-1">${cfg.name}</div>
+                    <div class="text-slate-200 leading-relaxed">
                         ${marked.parse(reportMarkdown || '')}
                     </div>
-                    ${downloadCard}
-                    ${videoCard}
+                    ${excelHtml}
+                    ${videoHtml}
+                    <div class="text-[10px] text-[#6c7883] text-right mt-1">${getNowTime()}</div>
                 </div>
             `;
             feed.appendChild(el);
@@ -774,83 +856,66 @@
         function appendError(err) {
             const feed = document.getElementById('chatFeed');
             const el = document.createElement('div');
-            el.className = "flex gap-4 items-start";
+            el.className = "flex items-end gap-2 max-w-[90%] sm:max-w-[75%]";
             el.innerHTML = `
-                <div class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center shrink-0">
-                    <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-400"></i>
+                <div class="w-7 h-7 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-xs shrink-0 mb-0.5">
+                    ⚠️
                 </div>
-                <div class="bg-rose-950/20 border border-rose-500/30 rounded-2xl rounded-tl-sm p-4 max-w-xl text-rose-300 text-sm">
-                    <p class="font-bold text-xs mb-1">Xatolik</p>
-                    <p>${err}</p>
+                <div class="bg-rose-950/40 border border-rose-500/30 rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px] text-rose-200 bubble-text">
+                    <div class="font-semibold text-xs text-rose-400 mb-0.5">Xatolik</div>
+                    <p>${escapeHtml(err)}</p>
                 </div>
             `;
             feed.appendChild(el);
-            lucide.createIcons();
             feed.scrollTop = feed.scrollHeight;
         }
 
         async function loadFiles() {
             try {
-                const res = await fetch('/api/files');
-                const data = await res.json();
+                const data = await safeJsonFetch('/api/files');
                 const list = document.getElementById('filesList');
-                
                 const xlsxList = data.xlsx_files || [];
                 const mp4List = data.mp4_files || [];
-                
+
                 if (xlsxList.length === 0 && mp4List.length === 0) {
-                    list.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-4">Hozircha yangi fayllar yo'q</p>`;
+                    list.innerHTML = `<p class="text-xs text-[#6c7883] italic text-center py-3">Hozircha fayllar yo'q</p>`;
                     return;
                 }
-                
+
                 let html = '';
-                
-                // 1. Videolar
                 mp4List.forEach(v => {
                     html += `
-                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#090d16] border border-blue-500/30 hover:border-blue-500/60 transition-all text-xs">
-                            <div class="flex items-center gap-2 overflow-hidden">
-                                <i data-lucide="video" class="w-4 h-4 text-blue-400 shrink-0"></i>
-                                <span class="truncate text-slate-200 font-medium" title="${v}">${v}</span>
+                        <div class="flex items-center justify-between p-2 rounded-xl bg-tgBg/80 border border-white/5 text-xs">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="video" class="w-4 h-4 text-[#2aabee] shrink-0"></i>
+                                <span class="truncate text-slate-200" title="${v}">${v}</span>
                             </div>
-                            <div class="flex items-center gap-1 shrink-0">
-                                <a href="/api/download/${v}" target="_blank" title="Ko'rish" class="text-blue-400 hover:text-white p-1">
-                                    <i data-lucide="play" class="w-3.5 h-3.5"></i>
-                                </a>
-                                <a href="/api/download/${v}" download="${v}" title="Yuklab olish" class="text-emerald-400 hover:text-white p-1">
-                                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                                </a>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                // 2. Excel jadvallar
-                xlsxList.forEach(f => {
-                    html += `
-                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#090d16] border border-[#1f293d] hover:border-emerald-500/40 transition-all text-xs">
-                            <div class="flex items-center gap-2 overflow-hidden">
-                                <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400 shrink-0"></i>
-                                <span class="truncate text-slate-200" title="${f}">${f}</span>
-                            </div>
-                            <a href="/api/download/${f}" download="${f}" title="Yuklab olish" class="text-emerald-400 hover:text-emerald-300 p-1 shrink-0">
-                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                            <a href="/api/download/${v}" download="${v}" class="text-[#2aabee] hover:text-white p-1 shrink-0">
+                                <i data-lucide="download" class="w-4 h-4"></i>
                             </a>
                         </div>
                     `;
                 });
-                
+                xlsxList.forEach(f => {
+                    html += `
+                        <div class="flex items-center justify-between p-2 rounded-xl bg-tgBg/80 border border-white/5 text-xs">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                                <span class="truncate text-slate-200" title="${f}">${f}</span>
+                            </div>
+                            <a href="/api/download/${f}" download="${f}" class="text-emerald-400 hover:text-white p-1 shrink-0">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                            </a>
+                        </div>
+                    `;
+                });
                 list.innerHTML = html;
                 lucide.createIcons();
-            } catch (e) {
-                console.log(e);
-            }
+            } catch (e) {}
         }
 
-        // Initial files load
         loadFiles();
 
-        // Enter key to send
         document.getElementById('taskInput').addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
