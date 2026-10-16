@@ -583,6 +583,7 @@ def api_download(filename):
 
 def run_web_server():
     port = int(os.environ.get("PORT", 8000))
+    print(f"[Web Server]: Server 0.0.0.0:{port} manzilida ishga tushmoqda...")
     app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False, threaded=True)
 
 # =======================================================
@@ -859,10 +860,24 @@ def run_telegram_bot():
         except Exception as e:
             bot.reply_to(message, f"Xatolik yuz berdi: {e}")
 
-    print("Telegram bot ishga tushdi...")
-    bot.infinity_polling()
+    print("Telegram bot muvaffaqiyatli ishga tushdi...")
+    bot.infinity_polling(timeout=20, long_polling_timeout=20)
+
+def start_bot_worker():
+    """Telegram botni fon rejimida uzluksiz va xatosiz ishlatish uchun qo'riqchi funksiya"""
+    import time
+    if not TELEGRAM_BOT_TOKEN:
+        print("[OGOHLANTIRISH]: TELEGRAM_BOT_TOKEN Environment Variable kiritilmagan. Telegram bot ishlamayapti.")
+        return
+    while True:
+        try:
+            print("[Telegram Bot]: Ulanmoqda...")
+            run_telegram_bot()
+        except Exception as e:
+            print(f"[Telegram Bot Xatosi]: {e}. 5 soniyadan keyin qayta uriniladi...")
+            time.sleep(5)
 
 if __name__ == "__main__":
-    t = threading.Thread(target=run_web_server, daemon=True)
+    t = threading.Thread(target=start_bot_worker, daemon=True)
     t.start()
-    run_telegram_bot()
+    run_web_server()
